@@ -5,7 +5,6 @@ html, body {
     text-rendering: optimizeLegibility;
 }
 
-/* ========== ПРИНУДИТЕЛЬНАЯ ЗАГРУЗКА ШРИФТОВ ДЛЯ IOS ========== */
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
 
@@ -162,7 +161,7 @@ body {
     box-shadow: 0 0 10px rgba(255, 51, 102, 0.4);
 }
 
-/* ========== ВЫПАДАЮЩЕЕ МЕНЮ ДЛЯ ЖАНРОВ ========== */
+/* ========== ВЫПАДАЮЩЕЕ МЕНЮ ========== */
 .dropdown {
     position: relative;
     display: inline-block;
@@ -204,11 +203,6 @@ body {
     overflow-y: auto;
 }
 
-/* Для ПК: открываем при наведении */
-.dropdown:hover .dropdown-content {
-    display: block;
-}
-
 .dropdown-content button {
     display: block;
     width: 100%;
@@ -228,48 +222,12 @@ body {
     color: #ff6699;
 }
 
-/* Адаптив для мобильных */
-@media (max-width: 600px) {
-    .dropdown-content {
-        position: fixed;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 80%;
-        max-width: 280px;
-        top: auto;
-        bottom: auto;
-        margin-top: 8px;
-    }
-    
-    /* На телефоне убираем наведение, оставляем только клик (через JS) */
-    .dropdown:hover .dropdown-content {
-        display: none;
-    }
+/* ПК: открытие по наведению */
+.dropdown:hover .dropdown-content {
+    display: block;
 }
 
-/* Адаптив для мобильных */
-@media (max-width: 600px) {
-    .dropdown-content {
-        position: fixed;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 80%;
-        max-width: 280px;
-    }
-}
-
-/* Адаптив для мобильных */
-@media (max-width: 600px) {
-    .dropdown-content {
-        position: fixed;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 80%;
-        max-width: 280px;
-    }
-}
-
-/* ========== ПАНЕЛЬ УПРАВЛЕНИЯ В КУПИТЬ ========== */
+/* ========== ПАНЕЛЬ УПРАВЛЕНИЯ ========== */
 .buy-controls {
     display: flex;
     flex-wrap: wrap;
@@ -334,26 +292,6 @@ body {
 
 .search-clear:hover {
     color: #ff3366;
-}
-
-/* Адаптив для поиска */
-@media (max-width: 700px) {
-    .buy-controls {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .search-box {
-        width: 100%;
-    }
-    
-    .search-box input {
-        width: 100%;
-    }
-    
-    .search-box input:focus {
-        width: 100%;
-    }
 }
 
 /* ========== КАРТОЧКИ КНИГ ========== */
@@ -464,7 +402,6 @@ body {
     width: 100%;
 }
 
-/* ========== КОМПАКТНАЯ КНОПКА ПОДДЕРЖКИ ========== */
 .donate-link-square {
     display: inline-block;
     background: linear-gradient(90deg, #ffd700, #ffaa00);
@@ -523,7 +460,6 @@ body {
     color: #ff99bb;
 }
 
-/* ========== ОТЗЫВЫ ========== */
 .reviews-section {
     margin-top: 15px;
     padding-top: 10px;
@@ -603,7 +539,6 @@ body {
     padding: 8px;
 }
 
-/* ========== МОДАЛЬНЫЕ ОКНА ========== */
 .modal {
     display: none;
     position: fixed;
@@ -647,7 +582,6 @@ body {
     margin-bottom: 15px;
 }
 
-/* ========== ПОДДЕРЖКА ========== */
 .support-card {
     text-align: center;
     background: rgba(30, 58, 50, 0.4);
@@ -661,7 +595,6 @@ body {
     font-size: 64px;
 }
 
-/* ========== ПОДВАЛ ========== */
 .footer {
     text-align: center;
     padding: 60px 20px 20px;
@@ -690,7 +623,6 @@ body {
     opacity: 0.6;
 }
 
-/* ========== АДАПТИВ ========== */
 @media (max-width: 600px) {
     body {
         padding: 0 12px 60px 12px;
@@ -698,5 +630,25 @@ body {
     .tab-btn {
         padding: 8px 16px;
         font-size: 14px;
+    }
+    .buy-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .search-box {
+        width: 100%;
+    }
+    .search-box input {
+        width: 100%;
+    }
+    .search-box input:focus {
+        width: 100%;
+    }
+    .dropdown-content {
+        position: fixed;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80%;
+        max-width: 280px;
     }
 }
