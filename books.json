@@ -1,0 +1,26 @@
+{
+  "books": [
+    {
+      "id": 1,
+      "title": "Берсерк. Том 1",
+      "author": "Кэнтаро Миура",
+      "genre": "манга",
+      "condition": "отличное",
+      "price": 500,
+      "seller": "book_lover",
+      "sellerName": "@book_lover",
+      "date": "2026-03-20"
+    },
+    {
+      "id": 2,
+      "title": "Ван-Пис. Том 1",
+      "author": "Эйитиро Ода",
+      "genre": "манга",
+      "condition": "хорошее",
+      "price": 400,
+      "seller": "manga_fan",
+      "sellerName": "@manga_fan",
+      "date": "2026-03-21"
+    }
+  ]
+}
