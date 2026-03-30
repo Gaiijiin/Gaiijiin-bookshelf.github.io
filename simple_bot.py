@@ -53,19 +53,48 @@ logger.info(f"✅ Бот запущен на URL: {RENDER_URL}")
 # ============ ФУНКЦИИ ДЛЯ РАБОТЫ С GOOGLE APPS SCRIPT ============
 
 def get_books_from_gas():
-    """Получает список книг из Google Apps Script"""
+    """Получает список книг из Google Apps Script с обработкой ошибок"""
     try:
         response = requests.get(GAS_URL, timeout=30)
-        if response.status_code == 200:
-            data = response.json()
-            books = data.get('books', [])
-            logger.info(f"📚 Загружено книг: {len(books)}")
-            return books
-        else:
-            logger.error(f"Ошибка GAS GET: {response.status_code}")
+        
+        # Проверяем статус
+        if response.status_code != 200:
+            logger.error(f"❌ GAS вернул статус {response.status_code}")
             return []
+        
+        # Проверяем что ответ не пустой
+        if not response.text or response.text.strip() == '':
+            logger.error("❌ GAS вернул пустой ответ")
+            return []
+        
+        # Пробуем распарсить JSON
+        try:
+            data = response.json()
+        except json.JSONDecodeError as e:
+            logger.error(f"❌ Ошибка парсинга JSON: {e}")
+            logger.error(f"Ответ GAS: {response.text[:200]}")
+            return []
+        
+        # Проверяем структуру ответа
+        if isinstance(data, dict) and 'books' in data:
+            books = data['books']
+        elif isinstance(data, list):
+            books = data
+        else:
+            logger.error(f"❌ Неизвестный формат ответа: {type(data)}")
+            return []
+        
+        logger.info(f"✅ Загружено {len(books)} книг из GAS")
+        return books
+        
+    except requests.exceptions.Timeout:
+        logger.error("❌ Таймаут при запросе к GAS")
+        return []
+    except requests.exceptions.ConnectionError:
+        logger.error("❌ Ошибка соединения с GAS")
+        return []
     except Exception as e:
-        logger.error(f"❌ Ошибка получения книг: {e}")
+        logger.error(f"❌ Неожиданная ошибка: {e}")
         return []
 
 def save_books_to_gas(books_list):
