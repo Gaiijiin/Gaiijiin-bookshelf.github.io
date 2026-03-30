@@ -7,7 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <title>BOOKSHELF</title>
+    <title>КНИЖНЫЙ ШКАФ</title>
 </head>
 <body>
 
@@ -27,31 +27,32 @@
 
     <!-- ========== ВКЛАДКА ЧИТАТЬ ========== -->
     <div id="read" class="tab-content active">
-        <div class="genre-filters" id="read-genres">
-            <div class="dropdown">
-                <button class="genre-btn dropdown-btn" id="readDropdownBtn">📖 Жанры ▼</button>
-                <div class="dropdown-content" id="readDropdownContent">
-                    <button data-genre="manga">Манга</button>
-                    <button data-genre="ranobe">Ранобэ</button>
-                    <button data-genre="comics">Комиксы</button>
-                    <button data-genre="classic">Классика</button>
-                    <button data-genre="modern">Романы 21 века</button>
-                    <button data-genre="fantasy">Фэнтези</button>
-                    <button data-genre="thriller">Триллер</button>
-                    <button data-genre="dark">Дарк</button>
-                    <button data-genre="detective">Детектив</button>
-                    <button data-genre="horror">Ужасы</button>
-                    <button data-genre="romance">Романтика</button>
-                    <button data-genre="sci-fi">Научная фантастика</button>
-                    <button data-genre="adventure">Приключения</button>
+        <div class="buy-controls">
+            <div class="filters-group">
+                <button class="genre-btn active" id="readAllBtn">📚 Все</button>
+                <div class="dropdown">
+                    <button class="genre-btn dropdown-btn" id="readDropdownBtn">📖 Жанры ▼</button>
+                    <div class="dropdown-content" id="readDropdownContent">
+                        <button data-genre="manga">Манга</button>
+                        <button data-genre="ranobe">Ранобэ</button>
+                        <button data-genre="comics">Комиксы</button>
+                        <button data-genre="classic">Классика</button>
+                        <button data-genre="modern">Романы 21 века</button>
+                        <button data-genre="fantasy">Фэнтези</button>
+                        <button data-genre="thriller">Триллер</button>
+                        <button data-genre="dark">Дарк</button>
+                        <button data-genre="detective">Детектив</button>
+                        <button data-genre="horror">Ужасы</button>
+                        <button data-genre="romance">Романтика</button>
+                        <button data-genre="sci-fi">Научная фантастика</button>
+                        <button data-genre="adventure">Приключения</button>
+                    </div>
                 </div>
             </div>
         </div>
-
-    <div class="premium-line"></div>
-    
-    <div id="read-books-list"></div>
-</div>
+        <div class="premium-line"></div>
+        <div id="read-books-list"></div>
+    </div>
 
     <!-- ========== ВКЛАДКА ПРОДАТЬ ========== -->
     <div id="sell" class="tab-content">
@@ -97,7 +98,7 @@
         
         <div class="buy-controls">
             <div class="filters-group">
-                <button class="genre-btn active" data-buy-genre="all">📚 Все</button>
+                <button class="genre-btn active" id="buyAllBtn">📚 Все</button>
                 <div class="dropdown">
                     <button class="genre-btn dropdown-btn" id="buyDropdownBtn">📖 Жанры ▼</button>
                     <div class="dropdown-content" id="buyDropdownContent">
@@ -123,7 +124,7 @@
                 <button id="searchClearBtn" class="search-clear" style="display: none;">✖</button>
             </div>
         </div>
-         <div class="premium-line"></div>
+        <div class="premium-line"></div>
         <div id="buy-books-list"></div>
     </div>
 
@@ -139,7 +140,7 @@
         </div>
     </div>
 
-    <!-- Модальное окно для отзыва -->
+    <!-- Модальные окна -->
     <div id="reviewModal" class="modal">
         <div class="modal-content">
             <span class="modal-close" onclick="closeReviewModal()">&times;</span>
@@ -164,7 +165,6 @@
         </div>
     </div>
 
-    <!-- Модальное окно для редактирования отзыва -->
     <div id="editReviewModal" class="modal">
         <div class="modal-content">
             <span class="modal-close" onclick="closeEditReviewModal()">&times;</span>
