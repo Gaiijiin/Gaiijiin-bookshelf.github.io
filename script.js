@@ -19,7 +19,7 @@ function isAdmin() {
 
 // ========== ПЕЧАТНАЯ МАШИНКА ==========
 const titleElement = document.getElementById('typing-title');
-const fullText = '📚 КНИЖНЫЙ ШКАФ';
+const fullText = 'BOOKSHELF';
 let idx = 0;
 function typeWriter() {
     if (idx < fullText.length) {
