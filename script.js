@@ -43,6 +43,76 @@ for (let i = 0; i < 60; i++) {
     document.body.appendChild(star);
 }
 
+// ========== GITHUB API ДЛЯ СИНХРОНИЗАЦИИ ==========
+const REPO_OWNER = 'Gaiijiin';
+const REPO_NAME = 'Gaiijiin-bookshelf.github.io';
+const FILE_PATH = 'books.json';
+
+async function loadBooksFromGitHub() {
+    try {
+        const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`);
+        if (!response.ok) {
+            physicalBooks = [];
+            nextBookId = 1;
+            renderBuyBooks();
+            return;
+        }
+        const data = await response.json();
+        const content = atob(data.content);
+        const json = JSON.parse(content);
+        physicalBooks = json.books || [];
+        nextBookId = Math.max(...physicalBooks.map(b => b.id), 0) + 1;
+        renderBuyBooks();
+        console.log('✅ Объявления загружены из GitHub');
+    } catch (error) {
+        console.error('Ошибка загрузки:', error);
+        loadData();
+    }
+}
+
+async function saveBooksToGitHub() {
+    let token = localStorage.getItem('github_token');
+    if (!token) {
+        token = prompt('🔐 Введите GitHub токен:');
+        if (!token) return false;
+        localStorage.setItem('github_token', token);
+    }
+    
+    try {
+        let sha = null;
+        try {
+            const shaRes = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
+                headers: { 'Authorization': `token ${token}` }
+            });
+            if (shaRes.ok) {
+                const shaData = await shaRes.json();
+                sha = shaData.sha;
+            }
+        } catch(e) {}
+        
+        const content = btoa(unescape(encodeURIComponent(JSON.stringify({ books: physicalBooks }, null, 2))));
+        const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ message: 'Update books', content: content, sha: sha })
+        });
+        
+        if (response.ok) {
+            console.log('✅ Сохранено в GitHub');
+            return true;
+        } else {
+            throw new Error();
+        }
+    } catch (error) {
+        localStorage.removeItem('github_token');
+        alert('❌ Ошибка сохранения. Токен удалён, попробуйте ещё раз.');
+        return false;
+    }
+}
+
 // ========== ДАННЫЕ ==========
 let reviews = {};
 let physicalBooks = [];
@@ -466,7 +536,7 @@ window.deleteReview = function() {
 };
 
 // ========== ФОРМА ПРОДАЖИ ==========
-document.getElementById('sell-form').addEventListener('submit', (e) => {
+document.getElementById('sell-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const genreMap = {
@@ -496,7 +566,7 @@ document.getElementById('sell-form').addEventListener('submit', (e) => {
     }
     
     physicalBooks.push(newBook);
-    saveData();
+    await saveBooksToGitHub(); // Сохраняем в GitHub
     renderBuyBooks();
     document.getElementById('sell-form').reset();
     
@@ -517,7 +587,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 });
 
 // ========== ЖАНРЫ ДЛЯ ЧТЕНИЯ ==========
-// Кнопка "Все"
 const readAllBtn = document.getElementById('readAllBtn');
 if (readAllBtn) {
     readAllBtn.addEventListener('click', () => {
@@ -528,7 +597,6 @@ if (readAllBtn) {
     });
 }
 
-// Пункты выпадающего меню
 document.querySelectorAll('#readDropdownContent button').forEach(btn => {
     btn.addEventListener('click', () => {
         const genre = btn.dataset.genre;
@@ -560,7 +628,6 @@ document.querySelectorAll('#readDropdownContent button').forEach(btn => {
 });
 
 // ========== ЖАНРЫ ДЛЯ ПОКУПКИ ==========
-// Кнопка "Все"
 const buyAllBtn = document.getElementById('buyAllBtn');
 if (buyAllBtn) {
     buyAllBtn.addEventListener('click', () => {
@@ -571,7 +638,6 @@ if (buyAllBtn) {
     });
 }
 
-// Пункты выпадающего меню
 document.querySelectorAll('#buyDropdownContent button').forEach(btn => {
     btn.addEventListener('click', () => {
         const genre = btn.dataset.buyGenre;
@@ -602,7 +668,7 @@ document.querySelectorAll('#buyDropdownContent button').forEach(btn => {
     });
 });
 
-// ========== УНИВЕРСАЛЬНОЕ МЕНЮ (КЛИК НА ВСЕХ УСТРОЙСТВАХ) ==========
+// ========== УНИВЕРСАЛЬНОЕ МЕНЮ ==========
 function setupDropdown(btnId, contentId) {
     const btn = document.getElementById(btnId);
     const content = document.getElementById(contentId);
@@ -658,7 +724,7 @@ titleH1?.addEventListener('mouseenter', (e) => {
     }
 });
 
-// ========== ПОИСК В РАЗДЕЛЕ КУПИТЬ ==========
+// ========== ПОИСК ==========
 const searchInput = document.getElementById('searchInput');
 const searchClearBtn = document.getElementById('searchClearBtn');
 
@@ -709,8 +775,8 @@ if (searchInput) {
 // ========== ЗАПУСК ==========
 const token = localStorage.getItem('github_token');
 if (token) {
-    loadBooksFromGitHub(); // загружаем с GitHub
+    loadBooksFromGitHub();
 } else {
-    loadData(); // загружаем локально
+    loadData();
 }
 renderReadBooks();
