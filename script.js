@@ -150,12 +150,7 @@ function loadData() {
     const savedReviews = localStorage.getItem('bookshelf_reviews');
     if (savedReviews) reviews = JSON.parse(savedReviews);
     else {
-        reviews = {
-            1: [{ author: "@anna_reader", rating: 5, text: "Шедевр!", date: "2026-03-15" }],
-            2: [{ author: "@pirate_lover", rating: 5, text: "Лучшая манга", date: "2026-03-18" }],
-            5: [{ author: "@dostoevsky_fan", rating: 5, text: "Глубоко, больно, гениально", date: "2026-03-22" }],
-            7: [{ author: "@book_lover", rating: 4, text: "Интересная современная проза", date: "2026-03-23" }]
-        };
+        reviews = {}; // Пустые отзывы, без авто-добавления
     }
     
     const savedBooks = localStorage.getItem('bookshelf_listings');
@@ -164,14 +159,15 @@ function loadData() {
         physicalBooks = parsed.books;
         nextBookId = parsed.nextId;
     } else {
-        physicalBooks = [];
-        nextBookId = 1;
+        physicalBooks = [
+            { id: 1, title: "Берсерк. Том 1", author: "Кэнтаро Миура", genre: "манга", condition: "отличное", price: 500, seller: "book_lover", sellerName: "@book_lover", date: "2026-03-20" },
+            { id: 2, title: "Ван-Пис. Том 1", author: "Эйитиро Ода", genre: "манга", condition: "хорошее", price: 400, seller: "manga_fan", sellerName: "@manga_fan", date: "2026-03-21" },
+            { id: 5, title: "Преступление и наказание", author: "Фёдор Достоевский", genre: "классика", condition: "отличное", price: 350, seller: "classic_reader", sellerName: "@classic_reader", date: "2026-03-22" },
+            { id: 6, title: "1984", author: "Джордж Оруэлл", genre: "классика", condition: "хорошее", price: 300, seller: "bookworm", sellerName: "@bookworm", date: "2026-03-22" },
+            { id: 7, title: "Щегол", author: "Донна Тартт", genre: "роман21", condition: "отличное", price: 550, seller: "modern_reader", sellerName: "@modern_reader", date: "2026-03-23" }
+        ];
+        nextBookId = 8;
     }
-}
-
-function saveData() {
-    localStorage.setItem('bookshelf_reviews', JSON.stringify(reviews));
-    localStorage.setItem('bookshelf_listings', JSON.stringify({ books: physicalBooks, nextId: nextBookId }));
 }
 
 // ========== ВСПОМОГАТЕЛЬНЫЕ ==========
@@ -467,7 +463,7 @@ window.deleteReview = function() {
 };
 
 // ========== ФОРМА ПРОДАЖИ ==========
-document.getElementById('sell-form').addEventListener('submit', (e) => {
+document.getElementById('sell-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const genreMap = {
@@ -497,7 +493,15 @@ document.getElementById('sell-form').addEventListener('submit', (e) => {
     }
     
     physicalBooks.push(newBook);
-    saveData();
+    
+    // Сохраняем в GitHub (если есть токен)
+    const token = localStorage.getItem('github_token');
+    if (token) {
+        await saveBooksToGitHubWithToken(token);
+    } else {
+        saveData(); // сохраняем локально
+    }
+    
     renderBuyBooks();
     document.getElementById('sell-form').reset();
     
@@ -506,6 +510,33 @@ document.getElementById('sell-form').addEventListener('submit', (e) => {
     else alert(msg);
 });
 
+async function saveBooksToGitHubWithToken(token) {
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify({ books: physicalBooks }, null, 2))));
+    
+    let sha = null;
+    try {
+        const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
+            headers: { 'Authorization': `token ${token}` }
+        });
+        if (response.ok) {
+            const data = await response.json();
+            sha = data.sha;
+        }
+    } catch(e) {}
+    
+    await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
+        method: 'PUT',
+        headers: {
+            'Authorization': `token ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            message: 'Update books',
+            content: content,
+            sha: sha
+        })
+    });
+}
 // ========== НАВИГАЦИЯ ПО ТАБАМ ==========
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -705,7 +736,78 @@ if (searchInput) {
     });
 }
 
+// ========== GITHUB API ДЛЯ ОБЩИХ ОБЪЯВЛЕНИЙ ==========
+const REPO_OWNER = 'Gaiijiin';
+const REPO_NAME = 'Gaiijiin-bookshelf.github.io';
+const FILE_PATH = 'books.json';
+
+async function loadBooksFromGitHub() {
+    try {
+        const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`);
+        if (!response.ok) {
+            console.log('Файл books.json не найден, создаём новый');
+            physicalBooks = [];
+            nextBookId = 1;
+            await saveBooksToGitHub();
+            renderBuyBooks();
+            return;
+        }
+        const data = await response.json();
+        const content = atob(data.content);
+        const json = JSON.parse(content);
+        physicalBooks = json.books || [];
+        nextBookId = Math.max(...physicalBooks.map(b => b.id), 0) + 1;
+        renderBuyBooks();
+    } catch (error) {
+        console.error('Ошибка загрузки объявлений:', error);
+    }
+}
+
+async function saveBooksToGitHub() {
+    const token = prompt('Введите GitHub токен для сохранения (нужен один раз)');
+    if (!token) return;
+    
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify({ books: physicalBooks }, null, 2))));
+    
+    // Получаем SHA текущего файла
+    let sha = null;
+    try {
+        const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
+            headers: { 'Authorization': `token ${token}` }
+        });
+        if (response.ok) {
+            const data = await response.json();
+            sha = data.sha;
+        }
+    } catch(e) {}
+    
+    const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
+        method: 'PUT',
+        headers: {
+            'Authorization': `token ${token}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            message: 'Update books',
+            content: content,
+            sha: sha
+        })
+    });
+    
+    if (response.ok) {
+        alert('✅ Объявления сохранены в GitHub!');
+        localStorage.setItem('github_token', token);
+    } else {
+        alert('❌ Ошибка сохранения');
+    }
+}
+
 // ========== ЗАПУСК ==========
-loadData();
+// Пробуем загрузить из GitHub, если нет — из localStorage
+const token = localStorage.getItem('github_token');
+if (token) {
+    loadBooksFromGitHub();
+} else {
+    loadData();
+}
 renderReadBooks();
-renderBuyBooks();
