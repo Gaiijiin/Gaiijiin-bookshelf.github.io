@@ -7,7 +7,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes
 
 TOKEN = "8611738780:AAElmgb8Qcqk9pRkQBu8Lcl9QxVeun6zFSo"
-MINI_APP_URL = "https://bybookshelf.netlify.app"
+MINI_APP_URL = "https://Gaiijiin.github.io/Gaiijiin-bookshelf.github.io"
 PORT = int(os.environ.get("PORT", 5000))
 
 logging.basicConfig(level=logging.INFO)
