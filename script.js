@@ -707,6 +707,10 @@ if (searchInput) {
 }
 
 // ========== ЗАПУСК ==========
-loadData();
+const token = localStorage.getItem('github_token');
+if (token) {
+    loadBooksFromGitHub(); // загружаем с GitHub
+} else {
+    loadData(); // загружаем локально
+}
 renderReadBooks();
-renderBuyBooks();
