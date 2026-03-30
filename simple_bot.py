@@ -1,4 +1,5 @@
 import os
+import re
 import logging
 import asyncio
 from flask import Flask, request, jsonify
@@ -15,45 +16,65 @@ logger = logging.getLogger(__name__)
 # Инициализация Flask
 app = Flask(__name__)
 
+def clean_url(url: str) -> str:
+    """Очищает URL от непечатных символов и лишних пробелов."""
+    if not url:
+        return url
+    # Удаляем все непечатные символы (включая символы \u200b, \ufeff и т.д.)
+    cleaned = re.sub(r'[\x00-\x1f\x7f-\x9f\u200b-\u200f\u2028-\u202f\u2060-\u206f\ufeff]', '', url)
+    # Убираем пробелы и табуляции в начале и конце
+    cleaned = cleaned.strip()
+    return cleaned
+
 # ДИАГНОСТИКА - покажет все переменные окружения
 print("=" * 60)
 print("ДИАГНОСТИКА ПЕРЕМЕННЫХ ОКРУЖЕНИЯ")
 print("=" * 60)
 for key in ['RENDER_EXTERNAL_URL', 'RENDER_SERVICE_NAME', 'RENDER_SERVICE_ID', 'PORT', 'TELEGRAM_BOT_TOKEN']:
-    value = os.environ.get(key)
-    if value and 'TOKEN' in key:
-        print(f"{key}: {value[:10]}... (длина: {len(value)})")
+    raw_value = os.environ.get(key)
+    if raw_value:
+        # Показываем длину и "чистое" значение для URL
+        if 'URL' in key:
+            cleaned_value = clean_url(raw_value)
+            print(f"{key}: (сырая длина {len(raw_value)}) -> (чистая длина {len(cleaned_value)})")
+            if len(raw_value) != len(cleaned_value):
+                print(f"  ⚠️ ВНИМАНИЕ: Найдены и удалены непечатные символы!")
+            print(f"  Чистый URL: {cleaned_value}")
+        elif 'TOKEN' in key:
+            print(f"{key}: {raw_value[:10]}... (длина: {len(raw_value)})")
+        else:
+            print(f"{key}: {raw_value}")
     else:
-        print(f"{key}: {value if value else 'НЕ УСТАНОВЛЕНА'}")
+        print(f"{key}: НЕ УСТАНОВЛЕНА")
 print("=" * 60)
 
-# Получение токена
-TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
+# Получение и ОЧИСТКА токена
+TOKEN_raw = os.environ.get('TELEGRAM_BOT_TOKEN')
+TOKEN = clean_url(TOKEN_raw) if TOKEN_raw else None
+
 if not TOKEN:
     logger.error("❌ TELEGRAM_BOT_TOKEN не установлен!")
     exit(1)
 
-# ПРАВИЛЬНОЕ получение URL Render
-# Render автоматически устанавливает RENDER_EXTERNAL_URL только для некоторых типов сервисов
-# Поэтому получаем URL из нескольких источников
-RENDER_URL = None
+# Получение и ОЧИСТКА URL
+RENDER_URL_raw = os.environ.get('RENDER_EXTERNAL_URL')
+RENDER_URL = clean_url(RENDER_URL_raw) if RENDER_URL_raw else None
 
-# 1. Пробуем RENDER_EXTERNAL_URL (обычно доступен для веб-сервисов)
-RENDER_URL = os.environ.get('RENDER_EXTERNAL_URL')
-
-# 2. Если нет, пробуем сформировать из имени сервиса
+# Если нет RENDER_EXTERNAL_URL, пробуем сформировать из имени сервиса
 if not RENDER_URL:
-    service_name = os.environ.get('RENDER_SERVICE_NAME')
-    if service_name:
+    service_name_raw = os.environ.get('RENDER_SERVICE_NAME')
+    if service_name_raw:
+        service_name = clean_url(service_name_raw)
         RENDER_URL = f"https://{service_name}.onrender.com"
         logger.info(f"📍 Сформирован URL из RENDER_SERVICE_NAME: {RENDER_URL}")
 
-# 3. Если всё еще нет, используем значение по умолчанию (замени на свой реальный URL)
+# Если всё еще нет, используем значение по умолчанию
 if not RENDER_URL:
-    # ВСТАВЬ СВОЙ РЕАЛЬНЫЙ URL ОТ RENDER!
-    RENDER_URL = "https://telegrambot-sbae.onrender.com"  # <-- УБЕДИСЬ, ЧТО ЭТО ПРАВИЛЬНЫЙ URL
+    RENDER_URL = "https://telegrambot-sbae.onrender.com"
     logger.warning(f"⚠️ Используется URL по умолчанию: {RENDER_URL}")
 
+# Финальная проверка и очистка URL
+RENDER_URL = clean_url(RENDER_URL)
 logger.info(f"✅ Будет использован URL: {RENDER_URL}")
 
 # Глобальная переменная для приложения бота
@@ -88,7 +109,7 @@ def index():
     return jsonify({
         "status": "ok", 
         "message": "Bookshelf Bot работает!",
-        "webhook_url": f"{RENDER_URL}/webhook" if RENDER_URL else "not configured"
+        "webhook_url": f"{RENDER_URL}/webhook"
     }), 200
 
 @app.route('/health')
@@ -96,7 +117,7 @@ def health():
     return jsonify({
         "status": "healthy",
         "bot_configured": bool(bot_app),
-        "webhook_url": f"{RENDER_URL}/webhook" if RENDER_URL else "not configured"
+        "webhook_url": f"{RENDER_URL}/webhook"
     }), 200
 
 @app.route('/webhook', methods=['POST'])
@@ -107,13 +128,11 @@ async def webhook():
         return jsonify({"error": "Bot not initialized"}), 500
     
     try:
-        # Получаем JSON из запроса
         json_data = request.get_json(force=True)
         if not json_data:
             return jsonify({"error": "No JSON data"}), 400
             
         logger.info(f"📨 Получен webhook: {json_data.get('message', {}).get('text', 'no text')}")
-        
         update = Update.de_json(json_data, bot_app.bot)
         await bot_app.process_update(update)
         return jsonify({"status": "ok"}), 200
@@ -137,25 +156,30 @@ def setup_bot():
     
     # Формируем URL вебхука
     webhook_url = f"{RENDER_URL}/webhook"
-    logger.info(f"🔗 URL вебхука: {webhook_url}")
+    # Очищаем URL еще раз на всякий случай
+    webhook_url = clean_url(webhook_url)
+    logger.info(f"🔗 URL вебхука (очищенный): {webhook_url}")
     
-    # Устанавливаем webhook
+    # Устанавливаем webhook с помощью нового event loop
     try:
-        # Создаем новый event loop
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         
-        # Устанавливаем webhook
+        # Пытаемся установить webhook
         loop.run_until_complete(bot_app.bot.set_webhook(webhook_url))
         logger.info(f"✅ Webhook успешно установлен: {webhook_url}")
         
         # Проверяем, что webhook установлен
         webhook_info = loop.run_until_complete(bot_app.bot.get_webhook_info())
-        logger.info(f"📡 Информация о webhook: url={webhook_info.url}, pending_updates={webhook_info.pending_update_count}")
+        logger.info(f"📡 Информация о webhook: url={webhook_info.url}")
         
     except Exception as e:
         logger.error(f"❌ Ошибка при установке webhook: {e}")
         logger.error(f"Тип ошибки: {type(e).__name__}")
+        logger.error(f"Проблемный URL: {webhook_url}")
+        logger.error(f"Длина URL: {len(webhook_url)}")
+        # Показываем ASCII-коды символов в URL для диагностики
+        logger.error(f"ASCII коды: {[ord(c) for c in webhook_url]}")
         raise
     finally:
         loop.close()
@@ -166,9 +190,9 @@ def setup_bot():
 if __name__ == "__main__":
     try:
         setup_bot()
-        
         port = int(os.environ.get('PORT', 10000))
         logger.info(f"🚀 Запуск Flask сервера на порту {port}")
+        # Запускаем Flask сервер
         app.run(host='0.0.0.0', port=port)
     except Exception as e:
         logger.error(f"❌ Критическая ошибка при запуске: {e}")
