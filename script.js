@@ -603,6 +603,90 @@ if (buyAllBtn) {
     });
 }
 
+// ========== ЖАНРЫ ДЛЯ ПОКУПКИ ==========
+// Кнопка "Все"
+const buyAllBtn = document.getElementById('buyAllBtn');
+if (buyAllBtn) {
+    buyAllBtn.addEventListener('click', () => {
+        document.querySelectorAll('#buy .filters-group button').forEach(b => b.classList.remove('active'));
+        buyAllBtn.classList.add('active');
+        currentBuyGenre = 'all';
+        renderBuyBooks();
+    });
+}
+
+// Пункты выпадающего меню
+document.querySelectorAll('#buyDropdownContent button').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const genre = btn.dataset.buyGenre;
+        currentBuyGenre = genre;
+        
+        document.querySelectorAll('#buy .filters-group button').forEach(b => b.classList.remove('active'));
+        document.getElementById('buyDropdownBtn').classList.add('active');
+        
+        const genreNames = {
+            'манга': '📖 Манга',
+            'ранобэ': '📘 Ранобэ',
+            'комиксы': '🦸 Комиксы',
+            'классика': '📜 Классика',
+            'роман21': '🌟 Романы 21 века',
+            'фэнтези': '✨ Фэнтези',
+            'триллер': '🔪 Триллер',
+            'дарк': '🌑 Дарк',
+            'детектив': '🕵️ Детектив',
+            'ужасы': '👻 Ужасы',
+            'романтика': '💕 Романтика',
+            'sci-fi': '🚀 Научная фантастика',
+            'приключения': '🏔️ Приключения'
+        };
+        document.getElementById('buyDropdownBtn').innerHTML = (genreNames[genre] || '📖 Жанры') + ' ▼';
+        
+        renderBuyBooks();
+        document.getElementById('buyDropdownContent').style.display = 'none';
+    });
+});
+
+// ========== УНИВЕРСАЛЬНОЕ МЕНЮ (КЛИК НА ВСЕХ УСТРОЙСТВАХ) ==========
+function setupDropdown(btnId, contentId) {
+    const btn = document.getElementById(btnId);
+    const content = document.getElementById(contentId);
+    if (!btn || !content) return;
+
+    // Закрываем при клике вне меню
+    function closeMenu(e) {
+        if (!btn.contains(e.target) && !content.contains(e.target)) {
+            content.style.display = 'none';
+            document.removeEventListener('click', closeMenu);
+        }
+    }
+
+    btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = content.style.display === 'block';
+        
+        // Закрываем все другие меню
+        document.querySelectorAll('.dropdown-content').forEach(d => d.style.display = 'none');
+        
+        if (!isOpen) {
+            content.style.display = 'block';
+            // Добавляем обработчик для закрытия при клике вне меню
+            setTimeout(() => {
+                document.addEventListener('click', closeMenu);
+            }, 0);
+        } else {
+            content.style.display = 'none';
+        }
+    });
+}
+
+// Активируем для обоих меню
+setupDropdown('readDropdownBtn', 'readDropdownContent');
+setupDropdown('buyDropdownBtn', 'buyDropdownContent');
+
+// ========== ЗВЁЗДЫ ПРИ НАВЕДЕНИИ ==========
+const titleH1 = document.querySelector('.glow-title');
+...
+
 // Пункты выпадающего меню
 document.querySelectorAll('#buyDropdownContent button').forEach(btn => {
     btn.addEventListener('click', () => {
