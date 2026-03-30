@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <title>📚 КНИЖНЫЙ ШКАФ</title>
+</head>
+<body>
+
+    <header class="premium-header">
+        <h1 class="glow-title" id="typing-title"></h1>
+    </header>
+    <div class="premium-line"></div>
+
+    <p class="subtitle"> Читай | Покупай | Продавай </p>
+
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="read">📖 Читать</button>
+        <button class="tab-btn" data-tab="sell">💰 Продать</button>
+        <button class="tab-btn" data-tab="buy">🛒 Купить</button>
+        <button class="tab-btn" data-tab="support">☕ Поддержка</button>
+    </div>
+
+    <!-- ========== ВКЛАДКА ЧИТАТЬ ========== -->
+    <div id="read" class="tab-content active">
+        <div class="genre-filters" id="read-genres">
+            <button class="genre-btn active" data-genre="manga">📖 Манга</button>
+            <button class="genre-btn" data-genre="ranobe">📘 Ранобэ</button>
+            <button class="genre-btn" data-genre="comics">🦸 Комиксы</button>
+            <button class="genre-btn" data-genre="classic">📜 Классика</button>
+            <button class="genre-btn" data-genre="modern">🌟 Романы 21 века</button>
+        </div>
+        <div id="read-books-list"></div>
+    </div>
+
+<!-- ========== ВКЛАДКА КУПИТЬ ========== -->
+<div id="buy" class="tab-content">
+    <div class="disclaimer">⚠️ Площадка сводит покупателя и продавца. Мы не отвечаем за сделки. Фото и детали уточняйте у продавца.</div>
+    
+    <!-- Кнопки фильтрации -->
+    <div class="genre-filters" id="buy-genres">
+        <button class="genre-btn active" data-buy-genre="all">📚 Все</button>
+        <div class="dropdown" id="genre-dropdown">
+            <button class="genre-btn dropdown-btn" id="dropdownBtn">📖 Жанры ▼</button>
+            <div class="dropdown-content" id="dropdownContent">
+                <button data-buy-genre="манга">📖 Манга</button>
+                <button data-buy-genre="ранобэ">📘 Ранобэ</button>
+                <button data-buy-genre="комиксы">🦸 Комиксы</button>
+                <button data-buy-genre="классика">📜 Классика</button>
+                <button data-buy-genre="роман21">🌟 Романы 21 века</button>
+                <button data-buy-genre="другое">📚 Другое</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="buy-books-list"></div>
+</div>
+
+<!-- ========== ВКЛАДКА ПРОДАТЬ (С ЖАНРОМ) ========== -->
+<div id="sell" class="tab-content">
+    <div class="disclaimer">
+        ⚠️ Правила: честное описание, договоритесь о фото сами<br><br>
+        📌 Если есть вопросы — напишите @prokopov13
+    </div>
+    <form id="sell-form">
+        <div class="form-group"><label>📚 Название</label><input type="text" id="title" placeholder="Берсерк. Том 1" required></div>
+        <div class="form-group"><label>✍️ Автор</label><input type="text" id="author" placeholder="Кэнтаро Миура" required></div>
+        <div class="form-group"><label>📖 Жанр</label>
+            <select id="genre">
+                <option>Манга</option>
+                <option>Ранобэ</option>
+                <option>Комиксы</option>
+                <option>Классика</option>
+                <option>Роман 21 века</option>
+                <option>Другое</option>
+            </select>
+        </div>
+        <div class="form-group"><label>📄 Состояние</label>
+            <select id="condition">
+                <option>отличное</option>
+                <option>хорошее</option>
+                <option>удовлетворительное</option>
+            </select>
+        </div>
+        <div class="form-group"><label>💰 Цена (₽)</label><input type="number" id="price" placeholder="500" required></div>
+        <div class="form-group"><label>📱 Ваш Telegram</label><input type="text" id="contact" placeholder="@username" required></div>
+        <button type="submit" class="submit-btn">📤 Отправить объявление</button>
+    </form>
+</div>
+
+<!-- ========== ВКЛАДКА ПОДДЕРЖКА ========== -->
+<div id="support" class="tab-content">
+    <div class="support-card">
+        <div class="support-icon">☕</div>
+        <h3>Поддержать проект</h3>
+        <p>Если вам нравится BOOKSHELF — вы можете поддержать наше развитие</p>
+        <div style="display: flex; justify-content: center;">
+            <a href="https://www.donationalerts.com/r/bygaijin" target="_blank" class="donate-link-square">Поддержать →</a>
+        </div>
+    </div>
+</div>
+
+    <!-- Модальное окно для отзыва -->
+    <div id="reviewModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeReviewModal()">&times;</span>
+            <h3>✍️ Оставить отзыв</h3>
+            <p id="modalBookTitle"></p>
+            <input type="hidden" id="modalBookId">
+            <div class="form-group">
+                <label>⭐ Оценка</label>
+                <select id="reviewRating">
+                    <option value="5">★★★★★ (5)</option>
+                    <option value="4">★★★★☆ (4)</option>
+                    <option value="3">★★★☆☆ (3)</option>
+                    <option value="2">★★☆☆☆ (2)</option>
+                    <option value="1">★☆☆☆☆ (1)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>📝 Текст отзыва</label>
+                <textarea id="reviewText" rows="3" placeholder="Поделитесь впечатлениями..."></textarea>
+            </div>
+            <button class="submit-btn" onclick="submitReview()">📤 Отправить отзыв</button>
+        </div>
+    </div>
+
+    <!-- Модальное окно для редактирования отзыва -->
+    <div id="editReviewModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeEditReviewModal()">&times;</span>
+            <h3>✏️ Редактировать отзыв</h3>
+            <input type="hidden" id="editBookId">
+            <input type="hidden" id="editReviewIndex">
+            <div class="form-group">
+                <label>⭐ Оценка</label>
+                <select id="editReviewRating"></select>
+            </div>
+            <div class="form-group">
+                <label>📝 Текст отзыва</label>
+                <textarea id="editReviewText" rows="3"></textarea>
+            </div>
+            <button class="submit-btn" onclick="updateReview()">💾 Сохранить</button>
+            <button class="delete-btn" onclick="deleteReview()">🗑️ Удалить отзыв</button>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-line"></div>
+        <p class="copyright">© 2026 · BOOKSHELF · ваш шкаф с историями</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
