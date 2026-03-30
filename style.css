@@ -1,0 +1,667 @@
+@charset "UTF-8";
+html, body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+/* ========== ПРИНУДИТЕЛЬНАЯ ЗАГРУЗКА ШРИФТОВ ДЛЯ IOS ========== */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
+
+:root {
+    --tg-theme-bg-color: #0a2f1a;
+    --tg-theme-secondary-bg-color: #0f3d24;
+    --tg-theme-text-color: #e6f3ef;
+    --tg-theme-hint-color: #99bba8;
+    --tg-theme-button-color: #ff3366;
+    --tg-theme-button-text-color: #ffffff;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    background-color: #0a2f1a !important;
+    margin: 0 !important;
+    min-height: 100vh;
+    font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    padding: 0 20px 80px 20px;
+    color: #e6f3ef;
+}
+
+.star-bg {
+    position: fixed;
+    background-color: #ffffff;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0;
+    animation: twinkle 3s infinite alternate;
+}
+
+@keyframes twinkle {
+    0% { opacity: 0; transform: scale(0.5); }
+    50% { opacity: 0.7; transform: scale(1); }
+    100% { opacity: 0.2; transform: scale(0.7); }
+}
+
+.premium-header {
+    background: linear-gradient(135deg, #1e3a32 0%, #14332a 100%);
+    padding: 25px 20px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    position: relative;
+    z-index: 2;
+    border-radius: 0 0 20px 20px;
+    margin: -20px -20px 0 -20px;
+}
+
+.glow-title {
+    color: #e6f3ef;
+    font-family: 'Montserrat', 'Bebas Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-size: 2.5rem;
+    margin: 0;
+    transition: all 0.3s ease;
+    letter-spacing: 2px;
+    min-height: 70px;
+    font-weight: 700;
+}
+
+.glow-title:hover {
+    color: #ff3366;
+    cursor: pointer;
+}
+
+.premium-line {
+    width: 60%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #ff3366, #ff6699, #ff3366, transparent);
+    margin: 20px auto 25px auto;
+    border-radius: 2px;
+}
+
+.subtitle {
+    text-align: center;
+    color: #e6f3ef;
+    opacity: 0.7;
+    font-size: 14px;
+    margin-bottom: 30px;
+    letter-spacing: 1px;
+}
+
+.tabs {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.tab-btn {
+    background: rgba(30, 58, 50, 0.4);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 51, 102, 0.3);
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 40px;
+    color: #e6f3ef;
+    transition: all 0.3s ease;
+    font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.tab-btn.active {
+    background: #ff3366;
+    border-color: #ff3366;
+    color: white;
+    box-shadow: 0 0 15px rgba(255, 51, 102, 0.5);
+}
+
+.tab-btn:hover {
+    transform: translateY(-2px);
+    border-color: #ff6699;
+}
+
+.tab-content {
+    display: none;
+    animation: fadeIn 0.3s ease;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ========== ЖАНРОВЫЕ КНОПКИ ========== */
+.genre-btn {
+    background: rgba(30, 58, 50, 0.3);
+    border: 1px solid rgba(255, 51, 102, 0.3);
+    padding: 8px 18px;
+    border-radius: 30px;
+    color: #e6f3ef;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.genre-btn.active {
+    background: #ff3366;
+    border-color: #ff3366;
+    box-shadow: 0 0 10px rgba(255, 51, 102, 0.4);
+}
+
+/* ========== ВЫПАДАЮЩЕЕ МЕНЮ ДЛЯ ЖАНРОВ ========== */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-btn {
+    cursor: pointer;
+    background: rgba(30, 58, 50, 0.4);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 51, 102, 0.3);
+    padding: 12px 24px;
+    border-radius: 40px;
+    color: #e6f3ef;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.dropdown-btn:hover {
+    transform: translateY(-2px);
+    border-color: #ff6699;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background: rgba(30, 58, 50, 0.95);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 51, 102, 0.3);
+    border-radius: 20px;
+    min-width: 200px;
+    z-index: 100;
+    top: 100%;
+    left: 0;
+    margin-top: 0;
+    padding: 8px 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.dropdown-content button {
+    display: block;
+    width: 100%;
+    padding: 10px 20px;
+    text-align: left;
+    background: none;
+    border: none;
+    color: #e6f3ef;
+    cursor: pointer;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.dropdown-content button:hover {
+    background: rgba(255, 51, 102, 0.3);
+    color: #ff6699;
+}
+
+/* Адаптив для мобильных */
+@media (max-width: 600px) {
+    .dropdown-content {
+        position: fixed;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80%;
+        max-width: 280px;
+    }
+}
+
+/* ========== ПАНЕЛЬ УПРАВЛЕНИЯ В КУПИТЬ ========== */
+.buy-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.filters-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+}
+
+.search-box {
+    position: relative;
+    min-width: 200px;
+}
+
+.search-box input {
+    padding: 10px 35px 10px 16px;
+    border-radius: 40px;
+    border: 1px solid rgba(255, 51, 102, 0.3);
+    background: rgba(30, 58, 50, 0.6);
+    color: #e6f3ef;
+    font-size: 14px;
+    font-family: 'Montserrat', sans-serif;
+    outline: none;
+    width: 220px;
+    transition: all 0.3s ease;
+}
+
+.search-box input:focus {
+    border-color: #ff3366;
+    width: 260px;
+}
+
+.search-box input::placeholder {
+    color: rgba(230, 243, 239, 0.5);
+}
+
+.search-clear {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #ff99bb;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.search-clear:hover {
+    color: #ff3366;
+}
+
+/* Адаптив для поиска */
+@media (max-width: 700px) {
+    .buy-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .search-box {
+        width: 100%;
+    }
+    
+    .search-box input {
+        width: 100%;
+    }
+    
+    .search-box input:focus {
+        width: 100%;
+    }
+}
+
+/* ========== КАРТОЧКИ КНИГ ========== */
+.book-card {
+    background: rgba(30, 58, 50, 0.4);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 51, 102, 0.3);
+    border-radius: 24px;
+    padding: 20px;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+}
+
+.book-card:hover {
+    transform: translateY(-5px);
+    border-color: #ff3366;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.book-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #ff6699;
+    margin-bottom: 5px;
+    font-family: 'Bebas Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    letter-spacing: 1px;
+}
+
+.book-author {
+    color: #e6f3ef;
+    opacity: 0.7;
+    font-size: 0.85rem;
+    margin-bottom: 10px;
+}
+
+.book-date {
+    font-size: 0.7rem;
+    color: #99bba8;
+    margin-bottom: 5px;
+}
+
+.book-price {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #ff3366;
+    margin: 10px 0;
+}
+
+.rating-display {
+    color: #ffd966;
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+}
+
+.rating-value {
+    margin-left: 8px;
+    color: #e6f3ef;
+    font-size: 0.8rem;
+}
+
+/* ========== КНОПКИ ========== */
+.contact-btn, .submit-btn, .review-btn {
+    background: linear-gradient(90deg, #ff3366, #ff6699);
+    border: none;
+    color: white;
+    padding: 10px;
+    border-radius: 40px;
+    width: 100%;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 10px;
+    font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.review-btn {
+    background: linear-gradient(90deg, #ffaa33, #ffcc66);
+    color: #1a1a2e;
+}
+
+.contact-btn:hover, .submit-btn:hover, .review-btn:hover {
+    transform: scale(0.98);
+    opacity: 0.9;
+}
+
+.delete-btn {
+    background: linear-gradient(90deg, #cc3333, #ff6666);
+    border: none;
+    color: white;
+    padding: 10px;
+    border-radius: 40px;
+    width: 100%;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.admin-delete-btn {
+    background: linear-gradient(90deg, #990000, #cc3333);
+    border: none;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 40px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 10px;
+    font-size: 0.8rem;
+    width: 100%;
+}
+
+/* ========== КОМПАКТНАЯ КНОПКА ПОДДЕРЖКИ ========== */
+.donate-link-square {
+    display: inline-block;
+    background: linear-gradient(90deg, #ffd700, #ffaa00);
+    border: none;
+    padding: 8px 24px;
+    border-radius: 30px;
+    font-weight: bold;
+    font-size: 0.85rem;
+    cursor: pointer;
+    text-decoration: none;
+    color: #1a1a2e;
+    transition: all 0.2s ease;
+    margin-top: 15px;
+    font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.donate-link-square:hover {
+    transform: scale(1.02);
+    background: #ffcc00;
+}
+
+/* ========== ФОРМЫ ========== */
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #e6f3ef;
+    font-weight: 500;
+}
+
+.form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 51, 102, 0.3);
+    background: rgba(30, 58, 50, 0.6);
+    color: #e6f3ef;
+    font-size: 14px;
+    font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.form-group textarea {
+    resize: vertical;
+}
+
+.disclaimer {
+    background: rgba(255, 51, 102, 0.15);
+    border-left: 4px solid #ff3366;
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    margin-bottom: 20px;
+    color: #ff99bb;
+}
+
+/* ========== ОТЗЫВЫ ========== */
+.reviews-section {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 51, 102, 0.2);
+}
+
+.reviews-title {
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: #ff99bb;
+    margin-bottom: 8px;
+}
+
+.review-item {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    position: relative;
+}
+
+.review-header {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 5px;
+    font-size: 0.7rem;
+}
+
+.review-author {
+    color: #ff99bb;
+    font-weight: bold;
+}
+
+.review-stars {
+    color: #ffd966;
+    font-size: 0.7rem;
+}
+
+.review-date {
+    color: rgba(230, 243, 239, 0.4);
+    font-size: 0.65rem;
+}
+
+.review-text {
+    font-size: 0.75rem;
+    color: #e6f3ef;
+    opacity: 0.9;
+}
+
+.review-actions {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    display: flex;
+    gap: 8px;
+}
+
+.review-edit, .review-delete {
+    cursor: pointer;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 12px;
+    background: rgba(255, 51, 102, 0.3);
+    transition: all 0.2s ease;
+}
+
+.review-edit:hover, .review-delete:hover {
+    background: #ff3366;
+}
+
+.no-reviews {
+    font-size: 0.7rem;
+    opacity: 0.5;
+    text-align: center;
+    padding: 8px;
+}
+
+/* ========== МОДАЛЬНЫЕ ОКНА ========== */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    z-index: 10000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: #0a2f1a;
+    border: 1px solid #ff3366;
+    border-radius: 32px;
+    padding: 30px 25px;
+    max-width: 400px;
+    width: 90%;
+    position: relative;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+.modal-close {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 28px;
+    cursor: pointer;
+    color: #ff6699;
+}
+
+.modal-close:hover {
+    color: #ff3366;
+}
+
+.modal-content h3 {
+    color: #ff6699;
+    margin-bottom: 15px;
+}
+
+/* ========== ПОДДЕРЖКА ========== */
+.support-card {
+    text-align: center;
+    background: rgba(30, 58, 50, 0.4);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 51, 102, 0.3);
+    border-radius: 32px;
+    padding: 40px 20px;
+}
+
+.support-icon {
+    font-size: 64px;
+}
+
+/* ========== ПОДВАЛ ========== */
+.footer {
+    text-align: center;
+    padding: 60px 20px 20px;
+    position: relative;
+    z-index: 2;
+    margin-top: 40px;
+}
+
+.footer-line {
+    width: 60%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #ff3366, #ff6699, #ff3366, transparent);
+    margin: 0 auto 20px auto;
+    border-radius: 2px;
+}
+
+.copyright {
+    font-size: 0.75rem;
+    color: rgba(230, 243, 239, 0.5);
+    letter-spacing: 1px;
+}
+
+.empty {
+    text-align: center;
+    padding: 40px;
+    opacity: 0.6;
+}
+
+/* ========== АДАПТИВ ========== */
+@media (max-width: 600px) {
+    body {
+        padding: 0 12px 60px 12px;
+    }
+    .tab-btn {
+        padding: 8px 16px;
+        font-size: 14px;
+    }
+}
