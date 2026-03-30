@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 # URL твоего Google Apps Script
-GAS_URL = "https://script.google.com/macros/s/AKfycbzvg08q_MxKeivLR8BqCMt5feZpKPJcbaw6Y2_jDbaAM0SmViYB2t4SBtZTkK_xkweH/exec"
+GAS_URL = "https://script.google.com/macros/s/AKfycbzc6t6LGck4FxCNO8Ayggoa5LNBOSne3JBPdPW8I7z4dFpAyTZb9G6iPkLJTVGtIOCh/exec"
 
 def clean_url(url: str) -> str:
     """Очищает URL от непечатных символов"""
