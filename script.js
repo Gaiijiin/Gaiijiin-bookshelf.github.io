@@ -57,8 +57,7 @@ async function loadBooksFromGitHub() {
         console.log('✅ Загружено книг:', physicalBooks.length);
     } catch (error) {
         console.error('❌ Ошибка загрузки:', error);
-        // Если не работает, загружаем локально
-        loadData();
+        loadData(); // fallback на локальное
     }
 }
 
@@ -76,75 +75,6 @@ async function saveBooksToGitHub() {
         return result.success === true;
     } catch (error) {
         console.error('❌ Ошибка сохранения:', error);
-        return false;
-    }
-}
-
-// Загрузка объявлений из GitHub (все пользователи)
-async function loadBooksFromGitHub() {
-    try {
-        const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`);
-        if (!response.ok) {
-            console.log('Файл books.json не найден, создаём новый');
-            physicalBooks = [];
-            nextBookId = 1;
-            renderBuyBooks();
-            return;
-        }
-        const data = await response.json();
-        const content = atob(data.content);
-        const json = JSON.parse(content);
-        physicalBooks = json.books || [];
-        nextBookId = Math.max(...physicalBooks.map(b => b.id), 0) + 1;
-        renderBuyBooks();
-        console.log('✅ Загружено книг из GitHub:', physicalBooks.length);
-    } catch (error) {
-        console.error('❌ Ошибка загрузки:', error);
-        loadData(); // fallback на локальное
-    }
-}
-
-// Сохранение объявлений в GitHub (любой пользователь может сохранять)
-async function saveBooksToGitHub() {
-    try {
-        // Получаем SHA текущего файла
-        let sha = null;
-        try {
-            const shaRes = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
-                headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
-            });
-            if (shaRes.ok) {
-                const shaData = await shaRes.json();
-                sha = shaData.sha;
-            }
-        } catch(e) {
-            console.log('Файл ещё не существует');
-        }
-        
-        const content = btoa(unescape(encodeURIComponent(JSON.stringify({ books: physicalBooks }, null, 2))));
-        const response = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `token ${GITHUB_TOKEN}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ 
-                message: `Update books (${new Date().toLocaleString()})`, 
-                content: content, 
-                sha: sha 
-            })
-        });
-        
-        if (response.ok) {
-            console.log('✅ Сохранено в GitHub');
-            return true;
-        } else {
-            const error = await response.json();
-            console.error('❌ Ошибка сохранения:', error);
-            return false;
-        }
-    } catch (error) {
-        console.error('❌ Ошибка сети:', error);
         return false;
     }
 }
@@ -815,5 +745,5 @@ if (searchInput) {
 }
 
 // ========== ЗАПУСК ==========
-loadBooksFromGitHub(); // Загружаем из GitHub
+loadBooksFromGitHub(); // Загружаем из Google Apps Script
 renderReadBooks();
