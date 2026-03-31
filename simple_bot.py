@@ -24,29 +24,34 @@ GAS_URL = "https://script.google.com/macros/s/AKfycbzc6t6LGck4FxCNO8Ayggoa5LNBOS
 
 logger.info(f"✅ URL: {RENDER_URL}")
 
-# ============ РАБОТА С GAS ============
+# ============ РАБОТА С GAS (СОХРАНЕНИЕ В books.json) ============
 def get_books():
+    """Загружает книги из Google Apps Script"""
     try:
         r = requests.get(GAS_URL, timeout=10)
         if r.status_code == 200:
             data = r.json()
             books = data.get('books', [])
-            logger.info(f"✅ Загружено {len(books)} книг из GAS")
+            logger.info(f"✅ Загружено {len(books)} книг")
             return books
-        return []
+        else:
+            logger.warning(f"⚠️ GAS вернул {r.status_code}")
+            return []
     except Exception as e:
         logger.error(f"❌ Ошибка загрузки: {e}")
         return []
 
 def save_books(books):
+    """Сохраняет книги в Google Apps Script"""
     try:
         r = requests.post(GAS_URL, json={"books": books}, timeout=10)
         if r.status_code == 200:
             data = r.json()
-            if data.get('success') or 'books' in data:
-                logger.info(f"✅ Сохранено {len(books)} книг в GAS")
+            # GAS может вернуть {"books": [...]} или {"success": true}
+            if 'books' in data or data.get('success'):
+                logger.info(f"✅ Сохранено {len(books)} книг")
                 return True
-        logger.error(f"❌ Ошибка сохранения: {r.status_code}")
+        logger.error(f"❌ Ошибка сохранения: {r.status_code} - {r.text[:100]}")
         return False
     except Exception as e:
         logger.error(f"❌ Ошибка: {e}")
@@ -93,9 +98,10 @@ def save_ad():
     try:
         data = request.get_json()
         logger.info(f"📥 Получено: {data}")
-        
+
+        # Получаем текущие книги из GAS
         books = get_books()
-        
+
         new_book = {
             "id": len(books) + 1,
             "title": data.get('title', 'Без названия'),
@@ -104,14 +110,14 @@ def save_ad():
             "contact": data.get('contact', ''),
             "date": __import__('datetime').datetime.now().isoformat()
         }
-        
+
         books.append(new_book)
-        
+
         if save_books(books):
             return jsonify({"status": "ok", "book": new_book}), 200
         else:
-            return jsonify({"error": "Ошибка сохранения"}), 500
-            
+            return jsonify({"error": "Ошибка сохранения в GAS"}), 500
+
     except Exception as e:
         logger.error(f"❌ Ошибка: {e}")
         return jsonify({"error": str(e)}), 500
@@ -121,13 +127,13 @@ def get_ads():
     books = get_books()
     return jsonify({"books": books, "total": len(books)})
 
-# ============ ЗАПУСК БОТА ============
+# ============ ЗАПУСК БОТА В ФОНОВОМ ПОТОКЕ ============
 def run_bot():
     try:
         bot_app = Application.builder().token(TOKEN).build()
         bot_app.add_handler(CommandHandler("start", start))
         bot_app.add_handler(CommandHandler("books", books_command))
-        logger.info("🚀 Бот запущен!")
+        logger.info("🚀 Бот запущен и работает!")
         bot_app.run_polling(allowed_updates=Update.ALL_TYPES)
     except Exception as e:
         logger.error(f"❌ Ошибка бота: {e}")
