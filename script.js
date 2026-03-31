@@ -6,6 +6,9 @@ if (tg) {
 }
 const isTelegram = !!tg?.initData;
 
+// ========== API URL (СЕРВЕР НА RENDER) ==========
+const API_URL = 'https://telegrambot-sbae.onrender.com';
+
 // ========== АДМИН ПО TELEGRAM ID ==========
 let isAdminMode = false;
 const ADMIN_IDS = [798388659];
@@ -43,54 +46,51 @@ for (let i = 0; i < 60; i++) {
     document.body.appendChild(star);
 }
 
-// ========== GOOGLE APPS SCRIPT API ==========
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbzc6t6LGck4FxCNO8Ayggoa5LNBOSne3JBPdPW8I7z4dFpAyTZb9G6iPkLJTVGtIOCh/exec';
+// ========== ЗАГРУЗКА ОБЪЯВЛЕНИЙ С СЕРВЕРА ==========
+let physicalBooks = [];
+let nextBookId = 1;
+let reviews = {};
 
-// URL API на Render
-const RENDER_API_URL = window.location.origin;
-
-// Загрузка объявлений
-async function loadBooksFromGitHub() {
+async function loadBooksFromServer() {
     try {
-        const response = await fetch(GAS_URL);
-        const json = await response.json();
-        physicalBooks = json.books || [];
+        const response = await fetch(`${API_URL}/get_ads`);
+        const data = await response.json();
+        physicalBooks = data.books || [];
         nextBookId = Math.max(...physicalBooks.map(b => b.id), 0) + 1;
         renderBuyBooks();
         console.log('✅ Загружено книг:', physicalBooks.length);
+        return true;
     } catch (error) {
-        console.error('❌ Ошибка загрузки:', error);
-        loadData(); // fallback на локальное
-    }
-}
-
-// Сохранение объявлений
-async function saveBooksToGitHub() {
-    try {
-        const response = await fetch(GAS_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ books: physicalBooks })
-        });
-        const result = await response.json();
-        return result.success === true;
-    } catch (error) {
-        console.error('❌ Ошибка сохранения:', error);
+        console.error('❌ Ошибка загрузки книг:', error);
         return false;
     }
 }
 
-// ========== ДАННЫЕ ==========
-let reviews = {};
-let physicalBooks = [];
-let currentReadGenre = "all";
-let currentBuyGenre = "all";
-let nextBookId = 1;
-let currentUser = null;
+// ========== СОХРАНЕНИЕ КНИГИ ЧЕРЕЗ СЕРВЕР ==========
+async function saveBookToServer(bookData) {
+    try {
+        const response = await fetch(`${API_URL}/save_ad`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(bookData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.status === 'ok') {
+            return { success: true, book: result.book };
+        } else {
+            return { success: false, error: result.error || 'Ошибка сохранения' };
+        }
+    } catch (error) {
+        console.error('❌ Ошибка отправки:', error);
+        return { success: false, error: error.message };
+    }
+}
 
-// ========== КНИГИ ДЛЯ ЧТЕНИЯ ==========
+// ========== ДАННЫЕ ДЛЯ ЧТЕНИЯ (ЛОКАЛЬНЫЕ) ==========
 const ebooks = {
     manga: [
         { id: 1, title: "Берсерк. Том 1", author: "Кэнтаро Миура", description: "Тёмное фэнтези" },
@@ -145,6 +145,10 @@ const ebooks = {
     ]
 };
 
+let currentUser = null;
+let currentReadGenre = "all";
+let currentBuyGenre = "all";
+
 function getCurrentUser() {
     if (currentUser) return currentUser;
     if (isTelegram && tg?.initDataUnsafe?.user) {
@@ -156,74 +160,15 @@ function getCurrentUser() {
     return currentUser;
 }
 
-// ========== АКТИВАЦИЯ АДМИН-РЕЖИМА ==========
-let adminClickCount = 0;
-let adminClickTimer = null;
-document.querySelector('.glow-title')?.addEventListener('click', () => {
-    adminClickCount++;
-    if (adminClickTimer) clearTimeout(adminClickTimer);
-    adminClickTimer = setTimeout(() => { adminClickCount = 0; }, 1000);
-    
-    if (adminClickCount === 3) {
-        if (isAdmin()) {
-            isAdminMode = true;
-            renderBuyBooks();
-            if (isTelegram && tg?.showPopup) {
-                tg.showPopup({ title: "🔓 Админ-режим", message: "Активирован. Вы видите кнопки удаления.", buttons: [{ type: "ok" }] });
-            } else {
-                alert("🔓 Админ-режим активирован!");
-            }
-        } else {
-            if (isTelegram && tg?.showPopup) {
-                tg.showPopup({ title: "❌ Доступ запрещён", message: "У вас нет прав администратора", buttons: [{ type: "ok" }] });
-            } else {
-                alert("❌ У вас нет прав администратора. Откройте приложение в Telegram.");
-            }
-        }
-        adminClickCount = 0;
-    }
-});
-
-// ========== ЗАГРУЗКА / СОХРАНЕНИЕ (ЛОКАЛЬНОЕ) ==========
-function loadData() {
-    const savedReviews = localStorage.getItem('bookshelf_reviews');
-    if (savedReviews) reviews = JSON.parse(savedReviews);
-    else reviews = {};
-    
-    const savedBooks = localStorage.getItem('bookshelf_listings');
-    if (savedBooks) {
-        const parsed = JSON.parse(savedBooks);
-        physicalBooks = parsed.books;
-        nextBookId = parsed.nextId;
-    } else {
-        physicalBooks = [
-            { id: 1, title: "Берсерк. Том 1", author: "Кэнтаро Миура", genre: "манга", condition: "отличное", price: 500, seller: "book_lover", sellerName: "@book_lover", date: "2026-03-20" },
-            { id: 2, title: "Ван-Пис. Том 1", author: "Эйитиро Ода", genre: "манга", condition: "хорошее", price: 400, seller: "manga_fan", sellerName: "@manga_fan", date: "2026-03-21" },
-            { id: 5, title: "Преступление и наказание", author: "Фёдор Достоевский", genre: "классика", condition: "отличное", price: 350, seller: "classic_reader", sellerName: "@classic_reader", date: "2026-03-22" },
-            { id: 6, title: "1984", author: "Джордж Оруэлл", genre: "классика", condition: "хорошее", price: 300, seller: "bookworm", sellerName: "@bookworm", date: "2026-03-22" },
-            { id: 7, title: "Щегол", author: "Донна Тартт", genre: "роман21", condition: "отличное", price: 550, seller: "modern_reader", sellerName: "@modern_reader", date: "2026-03-23" }
-        ];
-        nextBookId = 8;
-    }
+function getToday() {
+    return new Date().toISOString().split('T')[0];
 }
 
-function saveData() {
-    localStorage.setItem('bookshelf_reviews', JSON.stringify(reviews));
-    localStorage.setItem('bookshelf_listings', JSON.stringify({ books: physicalBooks, nextId: nextBookId }));
-}
-
-// ========== ВСПОМОГАТЕЛЬНЫЕ ==========
-function getAvgRating(bookId) {
-    if (!reviews[bookId] || reviews[bookId].length === 0) return null;
-    const sum = reviews[bookId].reduce((a, r) => a + r.rating, 0);
-    return (sum / reviews[bookId].length).toFixed(1);
-}
-
-function renderStars(rating) {
-    let stars = '';
-    for (let i = 0; i < Math.floor(rating); i++) stars += '⭐';
-    for (let i = stars.length; i < 5; i++) stars += '☆';
-    return stars;
+function formatDate(dateStr) {
+    if (!dateStr) return 'недавно';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return 'недавно';
+    return `${date.getDate()}.${date.getMonth()+1}.${date.getFullYear()}`;
 }
 
 function escapeHtml(str) {
@@ -236,15 +181,17 @@ function escapeHtml(str) {
     });
 }
 
-function getToday() {
-    return new Date().toISOString().split('T')[0];
+function renderStars(rating) {
+    let stars = '';
+    for (let i = 0; i < Math.floor(rating); i++) stars += '⭐';
+    for (let i = stars.length; i < 5; i++) stars += '☆';
+    return stars;
 }
 
-function formatDate(dateStr) {
-    if (!dateStr) return 'недавно';
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return 'недавно';
-    return `${date.getDate()}.${date.getMonth()+1}.${date.getFullYear()}`;
+function getAvgRating(bookId) {
+    if (!reviews[bookId] || reviews[bookId].length === 0) return null;
+    const sum = reviews[bookId].reduce((a, r) => a + r.rating, 0);
+    return (sum / reviews[bookId].length).toFixed(1);
 }
 
 // ========== ОТРИСОВКА КНИГ ДЛЯ ЧТЕНИЯ ==========
@@ -267,9 +214,9 @@ function renderReadBooks() {
     
     container.innerHTML = books.map(book => `
         <div class="book-card">
-            <div class="book-title">${book.title}</div>
-            <div class="book-author">${book.author}</div>
-            <div style="opacity:0.7">${book.description}</div>
+            <div class="book-title">${escapeHtml(book.title)}</div>
+            <div class="book-author">${escapeHtml(book.author)}</div>
+            <div style="opacity:0.7">${escapeHtml(book.description)}</div>
             <button class="contact-btn" onclick="readBook(${book.id})">📖 Читать онлайн</button>
         </div>
     `).join('');
@@ -307,12 +254,12 @@ function renderBuyBooks() {
             <div class="book-card">
                 <div class="book-title">${genreEmoji} ${escapeHtml(book.title)}</div>
                 <div class="book-author">${escapeHtml(book.author)}</div>
-                <div class="book-date">📅 Добавлено: ${formatDate(book.date)}</div>
+                <div class="book-date">📅 Добавлено: ${formatDate(book.created_at || book.date)}</div>
                 <div class="rating-display">${avg ? renderStars(parseFloat(avg)) + ' <span class="rating-value">' + avg + '</span>' : '⭐ Нет отзывов'}</div>
-                <div>Состояние: ${book.condition}</div>
+                <div>Состояние: ${book.condition || 'хорошее'}</div>
                 <div class="book-price">💰 ${book.price} ₽</div>
-                <div>Продавец: ${book.sellerName}</div>
-                <button class="contact-btn" onclick="contactSeller('${book.seller}', '${escapeHtml(book.title).replace(/'/g, "\\'")}')">📩 Купить / Связаться</button>
+                <div>Продавец: ${book.sellerName || book.contact}</div>
+                <button class="contact-btn" onclick="contactSeller('${book.contact?.replace('@', '') || book.seller}', '${escapeHtml(book.title).replace(/'/g, "\\'")}')">📩 Купить / Связаться</button>
                 <button class="review-btn" onclick="openReviewModal(${book.id}, '${escapeHtml(book.title).replace(/'/g, "\\'")}')">✍️ Оставить отзыв</button>
                 ${(isSeller || isAdminMode) ? `<button class="admin-delete-btn" onclick="deleteBook(${book.id})">🗑️ Удалить товар</button>` : ''}
                 <div class="reviews-section">
@@ -350,7 +297,7 @@ function renderReviews(bookId) {
     }).join('');
 }
 
-// ========== ГЛОБАЛЬНЫЕ ФУНКЦИИ ==========
+// ========== ФУНКЦИИ ДЛЯ КНИГ ==========
 window.readBook = function(bookId) {
     const msg = "Функция чтения появится в следующей версии";
     if (isTelegram && tg?.showPopup) tg.showPopup({ title: "📖 Чтение", message: msg, buttons: [{ type: "ok" }] });
@@ -376,8 +323,7 @@ window.contactSeller = function(username, bookTitle) {
     }
 };
 
-// ========== УДАЛЕНИЕ ТОВАРА ==========
-window.deleteBook = function(bookId) {
+window.deleteBook = async function(bookId) {
     const book = physicalBooks.find(b => b.id === bookId);
     if (!book) return;
     
@@ -391,7 +337,6 @@ window.deleteBook = function(bookId) {
     
     if (confirm(`Удалить товар "${book.title}"?`)) {
         physicalBooks = physicalBooks.filter(b => b.id !== bookId);
-        saveData();
         renderBuyBooks();
         if (isTelegram && tg?.showPopup) tg.showPopup({ title: "🗑️ Удалено", message: "Товар удалён", buttons: [{ type: "ok" }] });
         else alert("Товар удалён");
@@ -399,6 +344,16 @@ window.deleteBook = function(bookId) {
 };
 
 // ========== ОТЗЫВЫ ==========
+function saveReviewsLocally() {
+    localStorage.setItem('bookshelf_reviews', JSON.stringify(reviews));
+}
+
+function loadReviewsLocally() {
+    const savedReviews = localStorage.getItem('bookshelf_reviews');
+    if (savedReviews) reviews = JSON.parse(savedReviews);
+    else reviews = {};
+}
+
 window.openReviewModal = function(bookId, bookTitle) {
     const modal = document.getElementById('reviewModal');
     document.getElementById('modalBookTitle').textContent = bookTitle;
@@ -426,7 +381,7 @@ window.submitReview = function() {
     
     if (!reviews[bookId]) reviews[bookId] = [];
     reviews[bookId].unshift({ author: userName, rating: rating, text: text, date: getToday() });
-    saveData();
+    saveReviewsLocally();
     renderBuyBooks();
     closeReviewModal();
     
@@ -471,7 +426,7 @@ window.updateReview = function() {
     
     reviews[bookId][reviewIndex].rating = rating;
     reviews[bookId][reviewIndex].text = text;
-    saveData();
+    saveReviewsLocally();
     renderBuyBooks();
     closeEditReviewModal();
     
@@ -483,7 +438,7 @@ window.deleteReviewConfirm = function(bookId, reviewIndex) {
     if (confirm('Удалить этот отзыв?')) {
         reviews[bookId].splice(reviewIndex, 1);
         if (reviews[bookId].length === 0) delete reviews[bookId];
-        saveData();
+        saveReviewsLocally();
         renderBuyBooks();
         if (isTelegram && tg?.showPopup) tg.showPopup({ title: "🗑️ Удалено", message: "Отзыв удалён", buttons: [{ type: "ok" }] });
         else alert("Отзыв удалён");
@@ -496,7 +451,7 @@ window.deleteReview = function() {
     if (confirm('Удалить этот отзыв?')) {
         reviews[bookId].splice(reviewIndex, 1);
         if (reviews[bookId].length === 0) delete reviews[bookId];
-        saveData();
+        saveReviewsLocally();
         renderBuyBooks();
         closeEditReviewModal();
         if (isTelegram && tg?.showPopup) tg.showPopup({ title: "🗑️ Удалено", message: "Отзыв удалён", buttons: [{ type: "ok" }] });
@@ -504,7 +459,35 @@ window.deleteReview = function() {
     }
 };
 
-// ========== ФОРМА ПРОДАЖИ ==========
+// ========== АКТИВАЦИЯ АДМИН-РЕЖИМА ==========
+let adminClickCount = 0;
+let adminClickTimer = null;
+document.querySelector('.glow-title')?.addEventListener('click', () => {
+    adminClickCount++;
+    if (adminClickTimer) clearTimeout(adminClickTimer);
+    adminClickTimer = setTimeout(() => { adminClickCount = 0; }, 1000);
+    
+    if (adminClickCount === 3) {
+        if (isAdmin()) {
+            isAdminMode = true;
+            renderBuyBooks();
+            if (isTelegram && tg?.showPopup) {
+                tg.showPopup({ title: "🔓 Админ-режим", message: "Активирован. Вы видите кнопки удаления.", buttons: [{ type: "ok" }] });
+            } else {
+                alert("🔓 Админ-режим активирован!");
+            }
+        } else {
+            if (isTelegram && tg?.showPopup) {
+                tg.showPopup({ title: "❌ Доступ запрещён", message: "У вас нет прав администратора", buttons: [{ type: "ok" }] });
+            } else {
+                alert("❌ У вас нет прав администратора. Откройте приложение в Telegram.");
+            }
+        }
+        adminClickCount = 0;
+    }
+});
+
+// ========== ФОРМА ПРОДАЖИ (ОТПРАВКА НА СЕРВЕР) ==========
 document.getElementById('sell-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -518,49 +501,53 @@ document.getElementById('sell-form').addEventListener('submit', async (e) => {
     };
     
     const bookData = {
-        title: document.getElementById('title').value,
-        author: document.getElementById('author').value,
+        title: document.getElementById('title').value.trim(),
+        author: document.getElementById('author').value.trim(),
         genre: genreMap[document.getElementById('genre').value] || 'другое',
         condition: document.getElementById('condition').value,
         price: parseInt(document.getElementById('price').value),
-        contact: document.getElementById('contact').value,
-        sellerName: document.getElementById('contact').value
+        contact: document.getElementById('contact').value.trim(),
+        sellerName: document.getElementById('contact').value.trim(),
+        description: ''
     };
     
     if (!bookData.title || !bookData.author || !bookData.price || !bookData.contact) {
-        alert('Заполните все поля');
+        alert('❌ Заполните все поля');
         return;
     }
     
-    // Отправляем на сервер Render
-    const RENDER_API_URL = window.location.origin + '/save_ad';
+    // Показываем индикатор загрузки
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = '⏳ Публикация...';
+    submitBtn.disabled = true;
     
     try {
-        const response = await fetch(RENDER_API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(bookData)
-        });
+        const result = await saveBookToServer(bookData);
         
-        const result = await response.json();
-        
-        if (response.ok && result.status === 'ok') {
-            // Обновляем локальный список
-            await loadBooksFromGitHub();
+        if (result.success) {
+            // Перезагружаем список книг с сервера
+            await loadBooksFromServer();
             renderBuyBooks();
+            
+            // Очищаем форму
             document.getElementById('sell-form').reset();
             
-            const msg = "✅ Объявление опубликовано! Книга появится у всех пользователей.";
-            if (isTelegram && tg?.showPopup) tg.showPopup({ title: "Готово!", message: msg, buttons: [{ type: "ok" }] });
-            else alert(msg);
+            const msg = "✅ Книга успешно опубликована! Она появится у всех пользователей.";
+            if (isTelegram && tg?.showPopup) {
+                tg.showPopup({ title: "Готово!", message: msg, buttons: [{ type: "ok" }] });
+            } else {
+                alert(msg);
+            }
         } else {
             throw new Error(result.error || 'Ошибка сохранения');
         }
     } catch (error) {
-        console.error('❌ Ошибка:', error);
-        alert('❌ Ошибка сохранения. Попробуйте позже.');
+        console.error('❌ Ошибка публикации:', error);
+        alert(`❌ Ошибка публикации: ${error.message}\nПопробуйте позже.`);
+    } finally {
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
     }
 });
 
@@ -572,6 +559,11 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         const tabId = btn.dataset.tab;
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
+        
+        // Обновляем список книг при переходе на вкладку "Купить"
+        if (tabId === 'buy') {
+            loadBooksFromServer();
+        }
     });
 });
 
@@ -657,7 +649,7 @@ document.querySelectorAll('#buyDropdownContent button').forEach(btn => {
     });
 });
 
-// ========== УНИВЕРСАЛЬНОЕ МЕНЮ ==========
+// ========== ДРОПДАУН МЕНЮ ==========
 function setupDropdown(btnId, contentId) {
     const btn = document.getElementById(btnId);
     const content = document.getElementById(contentId);
@@ -685,33 +677,6 @@ function setupDropdown(btnId, contentId) {
 
 setupDropdown('readDropdownBtn', 'readDropdownContent');
 setupDropdown('buyDropdownBtn', 'buyDropdownContent');
-
-// ========== ЗВЁЗДЫ ПРИ НАВЕДЕНИИ ==========
-const titleH1 = document.querySelector('.glow-title');
-function createFlyingStar(x, y) {
-    const star = document.createElement('div');
-    star.innerHTML = ['★', '☆', '✦', '✧'][Math.floor(Math.random() * 4)];
-    star.style.position = 'fixed';
-    star.style.left = x + 'px';
-    star.style.top = y + 'px';
-    star.style.fontSize = (Math.random() * 15 + 10) + 'px';
-    star.style.color = '#fff9c4';
-    star.style.textShadow = '0 0 8px #ffd966';
-    star.style.pointerEvents = 'none';
-    star.style.zIndex = '9999';
-    star.style.transition = 'all 2s ease-out';
-    document.body.appendChild(star);
-    setTimeout(() => {
-        star.style.transform = `translate(${(Math.random() - 0.5) * 200}px, -100px)`;
-        star.style.opacity = '0';
-    }, 10);
-    setTimeout(() => star.remove(), 2000);
-}
-titleH1?.addEventListener('mouseenter', (e) => {
-    for (let i = 0; i < 15; i++) {
-        setTimeout(() => createFlyingStar(e.clientX + (Math.random() - 0.5) * 80, e.clientY + 40), i * 50);
-    }
-});
 
 // ========== ПОИСК ==========
 const searchInput = document.getElementById('searchInput');
@@ -761,6 +726,34 @@ if (searchInput) {
     });
 }
 
+// ========== ЗВЁЗДЫ ПРИ НАВЕДЕНИИ ==========
+const titleH1 = document.querySelector('.glow-title');
+function createFlyingStar(x, y) {
+    const star = document.createElement('div');
+    star.innerHTML = ['★', '☆', '✦', '✧'][Math.floor(Math.random() * 4)];
+    star.style.position = 'fixed';
+    star.style.left = x + 'px';
+    star.style.top = y + 'px';
+    star.style.fontSize = (Math.random() * 15 + 10) + 'px';
+    star.style.color = '#fff9c4';
+    star.style.textShadow = '0 0 8px #ffd966';
+    star.style.pointerEvents = 'none';
+    star.style.zIndex = '9999';
+    star.style.transition = 'all 2s ease-out';
+    document.body.appendChild(star);
+    setTimeout(() => {
+        star.style.transform = `translate(${(Math.random() - 0.5) * 200}px, -100px)`;
+        star.style.opacity = '0';
+    }, 10);
+    setTimeout(() => star.remove(), 2000);
+}
+titleH1?.addEventListener('mouseenter', (e) => {
+    for (let i = 0; i < 15; i++) {
+        setTimeout(() => createFlyingStar(e.clientX + (Math.random() - 0.5) * 80, e.clientY + 40), i * 50);
+    }
+});
+
 // ========== ЗАПУСК ==========
-loadBooksFromGitHub(); // Загружаем из Google Apps Script
+loadReviewsLocally();
+loadBooksFromServer();
 renderReadBooks();
