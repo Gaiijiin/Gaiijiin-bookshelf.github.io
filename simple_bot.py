@@ -1,10 +1,11 @@
 import os
+import re
 import logging
 import asyncio
 import requests
 import json
 from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS  # 👈 ДОБАВИТЬ
+from flask_cors import CORS
 from telegram import Update, WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes
 
@@ -13,18 +14,26 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-CORS(app)  # 👈 РАЗРЕШАЕМ ВСЕ ЗАПРОСЫ
+CORS(app)
 
-# ============ КОНСТАНТЫ ============
-GAS_URL = "https://script.google.com/macros/s/AKfycbzc6t6LGck4FxCNO8Ayggoa5LNBOSne3JBPdPW8I7z4dFpAyTZb9G6iPkLJTVGtIOCh/exec"
+# ============ ФУНКЦИЯ ОЧИСТКИ URL ============
+def clean_url(url: str) -> str:
+    if not url:
+        return url
+    cleaned = re.sub(r'[\x00-\x1f\x7f-\x9f\u200b-\u200f\u2028-\u202f\u2060-\u206f\ufeff]', '', url)
+    return cleaned.strip()
 
-TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
+# ============ ПЕРЕМЕННЫЕ ОКРУЖЕНИЯ ============
+TOKEN = clean_url(os.environ.get('TELEGRAM_BOT_TOKEN', ''))
 if not TOKEN:
     logger.error("❌ Нет токена!")
     exit(1)
 
-RENDER_URL = os.environ.get('RENDER_EXTERNAL_URL', 'https://telegrambot-sbae.onrender.com')
+RENDER_URL = clean_url(os.environ.get('RENDER_EXTERNAL_URL', 'https://telegrambot-sbae.onrender.com'))
 logger.info(f"✅ Бот запущен: {RENDER_URL}")
+
+# ============ КОНСТАНТЫ ============
+GAS_URL = "https://script.google.com/macros/s/AKfycbzc6t6LGck4FxCNO8Ayggoa5LNBOSne3JBPdPW8I7z4dFpAyTZb9G6iPkLJTVGtIOCh/exec"
 
 # ============ РАБОТА С GAS ============
 def get_books():
@@ -46,7 +55,7 @@ def save_books(books):
         if r.status_code == 200 and r.json().get('success'):
             logger.info(f"✅ Сохранено {len(books)} книг")
             return True
-        logger.error(f"❌ Ошибка сохранения: {r.status_code} - {r.text[:100]}")
+        logger.error(f"❌ Ошибка сохранения: {r.status_code}")
         return False
     except Exception as e:
         logger.error(f"❌ Ошибка: {e}")
@@ -102,10 +111,10 @@ def js():
 def health():
     return jsonify({"status": "ok", "books": len(get_books())})
 
-@app.route('/save_ad', methods=['POST', 'OPTIONS'])  # 👈 ДОБАВИЛИ OPTIONS
+@app.route('/save_ad', methods=['POST', 'OPTIONS'])
 def save_ad():
     if request.method == 'OPTIONS':
-        return '', 200  # Для preflight запроса
+        return '', 200
         
     try:
         data = request.json
