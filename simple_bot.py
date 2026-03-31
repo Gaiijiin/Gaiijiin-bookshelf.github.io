@@ -180,7 +180,8 @@ def serve_js():
 def health():
     return jsonify({"status": "healthy", "books_count": len(get_books_from_gas())})
 
-@app.route('/save_ad', methods=['POST'])
+# ============ ВАЖНО: ПРАВИЛЬНЫЙ МАРШРУТ С POST ============
+@app.route('/save_ad', methods=['POST'])  # <- обязательно methods=['POST']
 def save_ad():
     try:
         data = request.get_json()
