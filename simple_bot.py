@@ -41,18 +41,16 @@ if not RENDER_URL:
 
 logger.info(f"✅ Бот запущен: {RENDER_URL}")
 
-# ============ KEEP-ALIVE (чтобы сервер не засыпал) ============
+# ============ KEEP-ALIVE (сервер не засыпает) ============
 def keep_alive():
-    """Пинг сервера каждые 4 минуты, чтобы он не засыпал"""
     while True:
-        time.sleep(240)  # 4 минуты
+        time.sleep(240)  # каждые 4 минуты
         try:
             requests.get(f"https://{RENDER_URL}", timeout=10)
-            logger.info("🏓 Keep-alive ping отправлен")
-        except Exception as e:
-            logger.warning(f"⚠️ Keep-alive ошибка: {e}")
+            logger.info("🏓 Keep-alive ping")
+        except:
+            pass
 
-# Запускаем пинг только если не локальный запуск
 if RENDER_URL and "localhost" not in RENDER_URL:
     ping_thread = threading.Thread(target=keep_alive, daemon=True)
     ping_thread.start()
@@ -176,7 +174,10 @@ def save_ad():
             data.get('description', ''),
             data.get('contact', '')
         )
-        return jsonify({"status": "ok", "book": book}) if success else jsonify({"error": "Ошибка"}), 500
+        if success:
+            return jsonify({"status": "ok", "book": book}), 200
+        else:
+            return jsonify({"error": "Ошибка сохранения"}), 500
     except Exception as e:
         logger.error(f"❌ Ошибка save_ad: {e}")
         return jsonify({"error": str(e)}), 500
@@ -196,9 +197,17 @@ def webhook():
         if not json_data:
             return jsonify({"error": "No data"}), 400
         
+        # Создаем новый event loop для каждого запроса
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
+            update = Update.de_json(json_data, bot_app.bot)
+            loop.run_until_complete(bot_app.process_update(update))
+        except RuntimeError as e:
+            logger.error(f"❌ RuntimeError: {e}")
+            # Пробуем еще раз с новым loop
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
             update = Update.de_json(json_data, bot_app.bot)
             loop.run_until_complete(bot_app.process_update(update))
         finally:
@@ -216,6 +225,7 @@ def setup_bot():
     global bot_app
     logger.info("🔧 Настройка бота...")
     
+    # Создаем постоянный event loop
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     
@@ -226,16 +236,17 @@ def setup_bot():
     bot_app.add_handler(CommandHandler("books", books_command))
     bot_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
     
+    # Инициализируем и устанавливаем webhook
     loop.run_until_complete(bot_app.initialize())
     loop.run_until_complete(bot_app.bot.set_webhook(f"{RENDER_URL}/webhook"))
     logger.info(f"✅ Webhook установлен: {RENDER_URL}/webhook")
-    loop.close()
     
+    # НЕ закрываем loop здесь!
     logger.info("🤖 Бот готов!")
 
 # ============ ЗАПУСК ============
 if __name__ == "__main__":
     setup_bot()
     port = int(os.environ.get('PORT', 10000))
-    logger.info(f"🚀 Запуск на порту {port}")
+    logger.info(f"🚀 Запуск Flask на порту {port}")
     app.run(host='0.0.0.0', port=port)
