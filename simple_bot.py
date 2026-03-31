@@ -4,6 +4,7 @@ import asyncio
 import requests
 import json
 from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS  # 👈 ДОБАВИТЬ
 from telegram import Update, WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes
 
@@ -12,6 +13,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+CORS(app)  # 👈 РАЗРЕШАЕМ ВСЕ ЗАПРОСЫ
 
 # ============ КОНСТАНТЫ ============
 GAS_URL = "https://script.google.com/macros/s/AKfycbzc6t6LGck4FxCNO8Ayggoa5LNBOSne3JBPdPW8I7z4dFpAyTZb9G6iPkLJTVGtIOCh/exec"
@@ -44,7 +46,7 @@ def save_books(books):
         if r.status_code == 200 and r.json().get('success'):
             logger.info(f"✅ Сохранено {len(books)} книг")
             return True
-        logger.error(f"❌ Ошибка сохранения: {r.status_code}")
+        logger.error(f"❌ Ошибка сохранения: {r.status_code} - {r.text[:100]}")
         return False
     except Exception as e:
         logger.error(f"❌ Ошибка: {e}")
@@ -100,8 +102,11 @@ def js():
 def health():
     return jsonify({"status": "ok", "books": len(get_books())})
 
-@app.route('/save_ad', methods=['POST'])
+@app.route('/save_ad', methods=['POST', 'OPTIONS'])  # 👈 ДОБАВИЛИ OPTIONS
 def save_ad():
+    if request.method == 'OPTIONS':
+        return '', 200  # Для preflight запроса
+        
     try:
         data = request.json
         logger.info(f"📥 Получено: {data}")
