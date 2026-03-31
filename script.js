@@ -44,7 +44,7 @@ for (let i = 0; i < 60; i++) {
 }
 
 // ========== GOOGLE APPS SCRIPT API ==========
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbzvg08q_MxKeivLR8BqCMt5feZpKPJcbaw6Y2_jDbaAM0SmViYB2t4SBtZTkK_xkweH/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzc6t6LGck4FxCNO8Ayggoa5LNBOSne3JBPdPW8I7z4dFpAyTZb9G6iPkLJTVGtIOCh/exec';
 
 // Загрузка объявлений
 async function loadBooksFromGitHub() {
