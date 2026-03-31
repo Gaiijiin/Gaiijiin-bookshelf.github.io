@@ -28,8 +28,7 @@ books = []
 
 # ============ КОМАНДЫ БОТА ============
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Отправляет кнопку с мини-приложением"""
-    keyboard = [[InlineKeyboardButton("Bookshelf", web_app=WebAppInfo(url=RENDER_URL))]]
+    keyboard = [[InlineKeyboardButton("📚 Открыть Bookshelf", web_app=WebAppInfo(url=RENDER_URL))]]
     await update.message.reply_text(
         "👋 Добро пожаловать в Bookshelf!\n\n👇 Нажми на кнопку, чтобы открыть приложение",
         reply_markup=InlineKeyboardMarkup(keyboard)
@@ -37,7 +36,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info(f"✅ Команда start от {update.effective_user.username}")
 
 async def books_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Показывает список книг"""
     if not books:
         await update.message.reply_text("📚 Книг пока нет")
         return
@@ -45,7 +43,6 @@ async def books_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for b in books[-10:]:
         msg += f"📖 {b['title']} - {b['price']} руб.\n"
     await update.message.reply_text(msg)
-    logger.info(f"✅ Команда books от {update.effective_user.username}")
 
 # ============ FLASK МАРШРУТЫ ============
 @app.route('/')
@@ -90,32 +87,32 @@ def save_ad():
 def get_ads():
     return jsonify({"books": books, "total": len(books)})
 
-# ============ ЗАПУСК БОТА В ОТДЕЛЬНОМ ПОТОКЕ ============
+# ============ ЗАПУСК FLASK В ОТДЕЛЬНОМ ПОТОКЕ ============
+def run_flask():
+    port = int(os.environ.get('PORT', 10000))
+    app.run(host='0.0.0.0', port=port)
+
+# ============ ЗАПУСК БОТА В ГЛАВНОМ ПОТОКЕ ============
 def run_bot():
-    """Запускает бота с polling"""
     try:
-        # Создаем новый event loop для потока
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
         # Создаем приложение
         bot_app = Application.builder().token(TOKEN).build()
         bot_app.add_handler(CommandHandler("start", start))
         bot_app.add_handler(CommandHandler("books", books_command))
         
         logger.info("🚀 Запуск бота...")
+        # Запускаем polling (блокирует поток)
         bot_app.run_polling(allowed_updates=Update.ALL_TYPES)
         
     except Exception as e:
         logger.error(f"❌ Ошибка бота: {e}")
 
-# Запускаем бота в отдельном потоке
-bot_thread = threading.Thread(target=run_bot, daemon=True)
-bot_thread.start()
-logger.info("🤖 Поток бота запущен")
-
-# ============ ЗАПУСК FLASK ============
+# ============ ЗАПУСК ============
 if __name__ == "__main__":
-    port = int(os.environ.get('PORT', 10000))
-    logger.info(f"🚀 Запуск Flask на порту {port}")
-    app.run(host='0.0.0.0', port=port)
+    # Запускаем Flask в отдельном потоке
+    flask_thread = threading.Thread(target=run_flask, daemon=True)
+    flask_thread.start()
+    logger.info("🚀 Flask запущен в фоне")
+    
+    # Запускаем бота в главном потоке
+    run_bot()
