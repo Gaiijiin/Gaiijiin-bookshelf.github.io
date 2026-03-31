@@ -46,6 +46,9 @@ for (let i = 0; i < 60; i++) {
 // ========== GOOGLE APPS SCRIPT API ==========
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbzc6t6LGck4FxCNO8Ayggoa5LNBOSne3JBPdPW8I7z4dFpAyTZb9G6iPkLJTVGtIOCh/exec';
 
+// URL API на Render
+const RENDER_API_URL = window.location.origin;
+
 // Загрузка объявлений
 async function loadBooksFromGitHub() {
     try {
@@ -514,36 +517,50 @@ document.getElementById('sell-form').addEventListener('submit', async (e) => {
         'Другое': 'другое'
     };
     
-    const newBook = {
-        id: nextBookId++,
+    const bookData = {
         title: document.getElementById('title').value,
         author: document.getElementById('author').value,
         genre: genreMap[document.getElementById('genre').value] || 'другое',
         condition: document.getElementById('condition').value,
         price: parseInt(document.getElementById('price').value),
-        seller: document.getElementById('contact').value.replace('@', ''),
-        sellerName: document.getElementById('contact').value,
-        date: getToday()
+        contact: document.getElementById('contact').value,
+        sellerName: document.getElementById('contact').value
     };
     
-    if (!newBook.title || !newBook.author || !newBook.price || !newBook.seller) {
+    if (!bookData.title || !bookData.author || !bookData.price || !bookData.contact) {
         alert('Заполните все поля');
         return;
     }
     
-    physicalBooks.push(newBook);
+    // Отправляем на сервер Render
+    const RENDER_API_URL = window.location.origin + '/save_ad';
     
-    const success = await saveBooksToGitHub();
-    if (success) {
-        renderBuyBooks();
-        document.getElementById('sell-form').reset();
-        const msg = "✅ Объявление опубликовано! Книга появится у всех пользователей.";
-        if (isTelegram && tg?.showPopup) tg.showPopup({ title: "Готово!", message: msg, buttons: [{ type: "ok" }] });
-        else alert(msg);
-    } else {
+    try {
+        const response = await fetch(RENDER_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(bookData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.status === 'ok') {
+            // Обновляем локальный список
+            await loadBooksFromGitHub();
+            renderBuyBooks();
+            document.getElementById('sell-form').reset();
+            
+            const msg = "✅ Объявление опубликовано! Книга появится у всех пользователей.";
+            if (isTelegram && tg?.showPopup) tg.showPopup({ title: "Готово!", message: msg, buttons: [{ type: "ok" }] });
+            else alert(msg);
+        } else {
+            throw new Error(result.error || 'Ошибка сохранения');
+        }
+    } catch (error) {
+        console.error('❌ Ошибка:', error);
         alert('❌ Ошибка сохранения. Попробуйте позже.');
-        physicalBooks.pop(); // откатываем добавление
-        nextBookId--;
     }
 });
 
