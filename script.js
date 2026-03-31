@@ -533,7 +533,7 @@ document.getElementById('sell-form').addEventListener('submit', async (e) => {
             // Очищаем форму
             document.getElementById('sell-form').reset();
             
-            const msg = "✅ Книга успешно опубликована! Она появится у всех пользователей.";
+            const msg = "✅ Книга успешно опубликована!";
             if (isTelegram && tg?.showPopup) {
                 tg.showPopup({ title: "Готово!", message: msg, buttons: [{ type: "ok" }] });
             } else {
