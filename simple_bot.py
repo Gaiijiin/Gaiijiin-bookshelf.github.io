@@ -85,33 +85,44 @@ def add_book_to_gas(title, author, price, description, contact):
 
 # ============ КОМАНДЫ БОТА ============
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [[InlineKeyboardButton("📚 Открыть Bookshelf", web_app=WebAppInfo(url=RENDER_URL))]]
-    books_count = len(get_books_from_gas())
-    await update.message.reply_text(
-        f"👋 Добро пожаловать в Bookshelf!\n\n📚 В базе {books_count} книг\n\n👇 Нажми на кнопку ниже",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    try:
+        keyboard = [[InlineKeyboardButton("📚 Открыть Bookshelf", web_app=WebAppInfo(url=RENDER_URL))]]
+        books_count = len(get_books_from_gas())
+        await update.message.reply_text(
+            f"👋 Добро пожаловать в Bookshelf!\n\n📚 В базе {books_count} книг\n\n👇 Нажми на кнопку ниже",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+    except Exception as e:
+        logger.error(f"❌ Ошибка в start: {e}")
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("/start - Открыть приложение\n/books - Список книг\n/help - Помощь")
+    try:
+        await update.message.reply_text("/start - Открыть приложение\n/books - Список книг\n/help - Помощь")
+    except Exception as e:
+        logger.error(f"❌ Ошибка в help: {e}")
 
 async def books_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    books = get_books_from_gas()
-    if not books:
-        await update.message.reply_text("📚 Книг пока нет")
-        return
-    message = "📚 Последние книги:\n\n"
-    for book in books[-5:]:
-        message += f"📖 {book.get('title', '?')} - {book.get('price', '?')} руб.\n"
-    await update.message.reply_text(message)
+    try:
+        books = get_books_from_gas()
+        if not books:
+            await update.message.reply_text("📚 Книг пока нет")
+            return
+        message = "📚 Последние книги:\n\n"
+        for book in books[-5:]:
+            message += f"📖 {book.get('title', '?')} - {book.get('price', '?')} руб.\n"
+        await update.message.reply_text(message)
+    except Exception as e:
+        logger.error(f"❌ Ошибка в books: {e}")
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(f"Я получил: {update.message.text}")
+    try:
+        await update.message.reply_text(f"Я получил: {update.message.text}")
+    except Exception as e:
+        logger.error(f"❌ Ошибка в echo: {e}")
 
 # ============ FLASK МАРШРУТЫ ============
 @app.route('/')
 def index():
-    """Отдаем HTML страницу мини-приложения"""
     return send_from_directory('.', 'index.html')
 
 @app.route('/style.css')
@@ -142,6 +153,7 @@ def save_ad():
         )
         return jsonify({"status": "ok", "book": book}) if success else jsonify({"error": "Ошибка"}), 500
     except Exception as e:
+        logger.error(f"❌ Ошибка save_ad: {e}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/get_ads', methods=['GET'])
@@ -159,9 +171,19 @@ def webhook():
         if not json_data:
             return jsonify({"error": "No data"}), 400
         
+        # СОЗДАЕМ НОВЫЙ EVENT LOOP ДЛЯ КАЖДОГО ЗАПРОСА
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
+        
         try:
+            update = Update.de_json(json_data, bot_app.bot)
+            # ЗАПУСКАЕМ И ДОЖИДАЕМСЯ
+            loop.run_until_complete(bot_app.process_update(update))
+        except RuntimeError as e:
+            logger.error(f"❌ RuntimeError в webhook: {e}")
+            # Пробуем еще раз с новым loop
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
             update = Update.de_json(json_data, bot_app.bot)
             loop.run_until_complete(bot_app.process_update(update))
         finally:
@@ -179,6 +201,10 @@ def setup_bot():
     global bot_app
     logger.info("🔧 Настройка бота...")
     
+    # СОЗДАЕМ ПОСТОЯННЫЙ EVENT LOOP
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
     bot_app = Application.builder().token(TOKEN).build()
     
     bot_app.add_handler(CommandHandler("start", start))
@@ -186,17 +212,20 @@ def setup_bot():
     bot_app.add_handler(CommandHandler("books", books_command))
     bot_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
     
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+    # ИНИЦИАЛИЗИРУЕМ
     loop.run_until_complete(bot_app.initialize())
-    loop.run_until_complete(bot_app.bot.set_webhook(f"{RENDER_URL}/webhook"))
-    logger.info(f"✅ Webhook установлен: {RENDER_URL}/webhook")
-    loop.close()
     
+    # УСТАНАВЛИВАЕМ WEBHOOK
+    webhook_url = f"{RENDER_URL}/webhook"
+    loop.run_until_complete(bot_app.bot.set_webhook(webhook_url))
+    logger.info(f"✅ Webhook установлен: {webhook_url}")
+    
+    # НЕ ЗАКРЫВАЕМ LOOP ЗДЕСЬ!
     logger.info("🤖 Бот готов!")
 
 # ============ ЗАПУСК ============
 if __name__ == "__main__":
     setup_bot()
     port = int(os.environ.get('PORT', 10000))
+    logger.info(f"🚀 Запуск на порту {port}")
     app.run(host='0.0.0.0', port=port)
