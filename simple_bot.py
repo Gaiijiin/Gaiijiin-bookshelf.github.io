@@ -4,6 +4,8 @@ import logging
 import asyncio
 import requests
 import json
+import threading
+import time
 from flask import Flask, request, jsonify, send_from_directory
 from telegram import Update, WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
@@ -38,6 +40,23 @@ if not RENDER_URL:
     RENDER_URL = f"https://{service_name}.onrender.com"
 
 logger.info(f"✅ Бот запущен: {RENDER_URL}")
+
+# ============ KEEP-ALIVE (чтобы сервер не засыпал) ============
+def keep_alive():
+    """Пинг сервера каждые 4 минуты, чтобы он не засыпал"""
+    while True:
+        time.sleep(240)  # 4 минуты
+        try:
+            requests.get(f"https://{RENDER_URL}", timeout=10)
+            logger.info("🏓 Keep-alive ping отправлен")
+        except Exception as e:
+            logger.warning(f"⚠️ Keep-alive ошибка: {e}")
+
+# Запускаем пинг только если не локальный запуск
+if RENDER_URL and "localhost" not in RENDER_URL:
+    ping_thread = threading.Thread(target=keep_alive, daemon=True)
+    ping_thread.start()
+    logger.info("🔄 Keep-alive активирован (пинг каждые 4 минуты)")
 
 # ============ РАБОТА С GAS ============
 def get_books_from_gas():
@@ -123,15 +142,21 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ============ FLASK МАРШРУТЫ ============
 @app.route('/')
 def index():
-    return send_from_directory('.', 'index.html')
+    response = send_from_directory('.', 'index.html')
+    response.headers['Cache-Control'] = 'public, max-age=3600'
+    return response
 
 @app.route('/style.css')
 def serve_css():
-    return send_from_directory('.', 'style.css')
+    response = send_from_directory('.', 'style.css')
+    response.headers['Cache-Control'] = 'public, max-age=86400'
+    return response
 
 @app.route('/script.js')
 def serve_js():
-    return send_from_directory('.', 'script.js')
+    response = send_from_directory('.', 'script.js')
+    response.headers['Cache-Control'] = 'public, max-age=86400'
+    return response
 
 @app.route('/health')
 def health():
@@ -171,19 +196,9 @@ def webhook():
         if not json_data:
             return jsonify({"error": "No data"}), 400
         
-        # СОЗДАЕМ НОВЫЙ EVENT LOOP ДЛЯ КАЖДОГО ЗАПРОСА
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        
         try:
-            update = Update.de_json(json_data, bot_app.bot)
-            # ЗАПУСКАЕМ И ДОЖИДАЕМСЯ
-            loop.run_until_complete(bot_app.process_update(update))
-        except RuntimeError as e:
-            logger.error(f"❌ RuntimeError в webhook: {e}")
-            # Пробуем еще раз с новым loop
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
             update = Update.de_json(json_data, bot_app.bot)
             loop.run_until_complete(bot_app.process_update(update))
         finally:
@@ -201,7 +216,6 @@ def setup_bot():
     global bot_app
     logger.info("🔧 Настройка бота...")
     
-    # СОЗДАЕМ ПОСТОЯННЫЙ EVENT LOOP
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     
@@ -212,15 +226,11 @@ def setup_bot():
     bot_app.add_handler(CommandHandler("books", books_command))
     bot_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
     
-    # ИНИЦИАЛИЗИРУЕМ
     loop.run_until_complete(bot_app.initialize())
+    loop.run_until_complete(bot_app.bot.set_webhook(f"{RENDER_URL}/webhook"))
+    logger.info(f"✅ Webhook установлен: {RENDER_URL}/webhook")
+    loop.close()
     
-    # УСТАНАВЛИВАЕМ WEBHOOK
-    webhook_url = f"{RENDER_URL}/webhook"
-    loop.run_until_complete(bot_app.bot.set_webhook(webhook_url))
-    logger.info(f"✅ Webhook установлен: {webhook_url}")
-    
-    # НЕ ЗАКРЫВАЕМ LOOP ЗДЕСЬ!
     logger.info("🤖 Бот готов!")
 
 # ============ ЗАПУСК ============
