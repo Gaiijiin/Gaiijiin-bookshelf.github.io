@@ -1,11 +1,12 @@
 import os
 import re
 import logging
+import asyncio
+import threading
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from telegram import Update, WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes
-import threading
 
 # ============ НАСТРОЙКА ============
 logging.basicConfig(level=logging.INFO)
@@ -29,14 +30,14 @@ if not TOKEN:
 RENDER_URL = clean_url(os.environ.get('RENDER_EXTERNAL_URL', 'https://telegrambot-sbae.onrender.com'))
 logger.info(f"✅ URL: {RENDER_URL}")
 
-# ============ ХРАНИЛИЩЕ ============
+# ============ ХРАНИЛИЩЕ КНИГ ============
 books_db = []
 
 # ============ КОМАНДЫ БОТА ============
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [[InlineKeyboardButton("📚 Открыть", web_app=WebAppInfo(url=RENDER_URL))]]
+    keyboard = [[InlineKeyboardButton("📚 Открыть Bookshelf", web_app=WebAppInfo(url=RENDER_URL))]]
     await update.message.reply_text(
-        "👋 Добро пожаловать!\n👇 Нажми на кнопку",
+        "👋 Добро пожаловать в Bookshelf!\n\n👇 Нажми на кнопку ниже",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
@@ -49,7 +50,7 @@ async def books_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg += f"📖 {b['title']} - {b['price']} руб.\n"
     await update.message.reply_text(msg)
 
-# ============ FLASK ============
+# ============ FLASK МАРШРУТЫ ============
 @app.route('/')
 def index():
     return send_from_directory('.', 'index.html')
@@ -96,24 +97,29 @@ def save_ad():
 
 @app.route('/get_ads', methods=['GET'])
 def get_ads():
-    return jsonify({"books": books_db})
+    return jsonify({"books": books_db, "total": len(books_db)})
 
-# ============ ЗАПУСК БОТА (ПОЛЛИНГ, БЕЗ WEBHOOK) ============
+# ============ ЗАПУСК БОТА (С ПРАВИЛЬНЫМ EVENT LOOP) ============
 def run_bot():
-    """Запускает бота в отдельном потоке с polling"""
+    """Запускает бота с polling в правильном event loop"""
     try:
+        # Создаем новый event loop для этого потока
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
         # Создаем приложение
         bot_app = Application.builder().token(TOKEN).build()
         bot_app.add_handler(CommandHandler("start", start))
         bot_app.add_handler(CommandHandler("books", books_command))
         
         logger.info("🚀 Запуск бота с polling...")
-        # Запускаем polling (не webhook)
+        # Запускаем polling (работает в текущем loop)
         bot_app.run_polling(allowed_updates=Update.ALL_TYPES)
+        
     except Exception as e:
         logger.error(f"❌ Ошибка бота: {e}")
 
-# Запускаем бота в фоновом потоке
+# Запускаем бота в отдельном потоке
 bot_thread = threading.Thread(target=run_bot, daemon=True)
 bot_thread.start()
 
