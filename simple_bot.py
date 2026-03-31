@@ -190,10 +190,7 @@ def setup():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.run_until_complete(bot_app.initialize())
-    loop.run_until_complete(bot_app.bot.set_webhook(
-        url=f"{RENDER_URL}/webhook",
-        timeout=60  # увеличиваем таймаут
-    ))
+    loop.run_until_complete(bot_app.bot.set_webhook(f"{RENDER_URL}/webhook"))
     loop.close()
     logger.info("✅ Бот готов!")
 
