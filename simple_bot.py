@@ -53,29 +53,20 @@ logger.info(f"✅ Бот запущен на URL: {RENDER_URL}")
 # ============ ФУНКЦИИ ДЛЯ РАБОТЫ С GOOGLE APPS SCRIPT ============
 
 def get_books_from_gas():
-    """Получает список книг из Google Apps Script с обработкой ошибок"""
+    """Получает список книг из Google Apps Script"""
     try:
         response = requests.get(GAS_URL, timeout=30)
         
-        # Проверяем статус
         if response.status_code != 200:
             logger.error(f"❌ GAS вернул статус {response.status_code}")
             return []
         
-        # Проверяем что ответ не пустой
         if not response.text or response.text.strip() == '':
             logger.error("❌ GAS вернул пустой ответ")
             return []
         
-        # Пробуем распарсить JSON
-        try:
-            data = response.json()
-        except json.JSONDecodeError as e:
-            logger.error(f"❌ Ошибка парсинга JSON: {e}")
-            logger.error(f"Ответ GAS: {response.text[:200]}")
-            return []
+        data = response.json()
         
-        # Проверяем структуру ответа
         if isinstance(data, dict) and 'books' in data:
             books = data['books']
         elif isinstance(data, list):
@@ -84,17 +75,11 @@ def get_books_from_gas():
             logger.error(f"❌ Неизвестный формат ответа: {type(data)}")
             return []
         
-        logger.info(f"✅ Загружено {len(books)} книг из GAS")
+        logger.info(f"✅ Загружено {len(books)} книг")
         return books
         
-    except requests.exceptions.Timeout:
-        logger.error("❌ Таймаут при запросе к GAS")
-        return []
-    except requests.exceptions.ConnectionError:
-        logger.error("❌ Ошибка соединения с GAS")
-        return []
     except Exception as e:
-        logger.error(f"❌ Неожиданная ошибка: {e}")
+        logger.error(f"❌ Ошибка получения книг: {e}")
         return []
 
 def save_books_to_gas(books_list):
@@ -107,7 +92,7 @@ def save_books_to_gas(books_list):
         if response.status_code == 200:
             result = response.json()
             if result.get('success'):
-                logger.info(f"✅ Сохранено {len(books_list)} книг в GAS")
+                logger.info(f"✅ Сохранено {len(books_list)} книг")
                 return True
             else:
                 logger.error(f"❌ GAS ошибка: {result.get('error')}")
@@ -151,14 +136,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    # Показываем статистику
     books = get_books_from_gas()
     books_count = len(books)
     
     await update.message.reply_text(
         f"👋 Добро пожаловать в Bookshelf!\n\n"
         f"📚 В базе {books_count} книг\n\n"
-        f"📖 Продавай и покупай книги\n\n"
         f"👇 Нажми на кнопку ниже, чтобы открыть мини-приложение",
         reply_markup=reply_markup
     )
@@ -167,12 +150,9 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Помощь"""
     await update.message.reply_text(
         "📚 Bookshelf Bot\n\n"
-        "📌 Команды:\n"
         "/start - Открыть мини-приложение\n"
         "/books - Показать все книги\n"
-        "/help - Помощь\n\n"
-        "📖 Создавай объявления о продаже книг\n"
-        "🔍 Находи книги, которые хочешь купить"
+        "/help - Помощь"
     )
 
 async def books_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -180,24 +160,22 @@ async def books_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     books = get_books_from_gas()
     
     if not books:
-        await update.message.reply_text("📚 Пока нет ни одной книги. Добавь первую через мини-приложение!")
+        await update.message.reply_text("📚 Пока нет ни одной книги.")
         return
     
     message = "📚 Список книг:\n\n"
-    for book in books[-10:]:  # Показываем последние 10
+    for book in books[-10:]:
         message += f"📖 {book.get('title', 'Без названия')}\n"
         message += f"💰 {book.get('price', 'Цена не указана')} руб.\n"
-        message += f"👤 {book.get('author', 'Автор не указан')}\n"
         message += "➖" * 10 + "\n"
     
     message += f"\nВсего книг: {len(books)}"
     await update.message.reply_text(message)
 
-# ============ FLASK МАРШРУТЫ ДЛЯ МИНИ-ПРИЛОЖЕНИЯ ============
+# ============ FLASK МАРШРУТЫ ============
 
 @app.route('/')
 def index():
-    """Главная страница API"""
     books = get_books_from_gas()
     return jsonify({
         "status": "ok",
@@ -207,21 +185,17 @@ def index():
 
 @app.route('/health')
 def health():
-    """Проверка здоровья"""
     return jsonify({
         "status": "healthy",
-        "bot_active": True,
-        "gas_connected": True
+        "bot_active": True
     }), 200
 
 @app.route('/save_ad', methods=['POST'])
 def save_ad():
-    """Сохранение объявления через Google Apps Script"""
     try:
         data = request.get_json()
         logger.info(f"📝 Получено объявление: {data}")
         
-        # Валидация
         title = data.get('title')
         if not title:
             return jsonify({"error": "Название книги обязательно"}), 400
@@ -231,18 +205,16 @@ def save_ad():
         description = data.get('description', '')
         contact = data.get('contact', '')
         
-        # Сохраняем через GAS
         success, new_book = add_book_to_gas(title, author, price, description, contact)
         
         if success:
-            logger.info(f"✅ Книга сохранена: {title}")
             return jsonify({
                 "status": "ok",
-                "message": "Книга добавлена в библиотеку",
+                "message": "Книга добавлена",
                 "book": new_book
             }), 200
         else:
-            return jsonify({"error": "Ошибка сохранения в GAS"}), 500
+            return jsonify({"error": "Ошибка сохранения"}), 500
             
     except Exception as e:
         logger.error(f"❌ Ошибка: {e}")
@@ -250,7 +222,6 @@ def save_ad():
 
 @app.route('/get_ads', methods=['GET'])
 def get_ads():
-    """Получение всех книг"""
     try:
         books = get_books_from_gas()
         return jsonify({
@@ -264,7 +235,6 @@ def get_ads():
 
 @app.route('/get_ad/<int:book_id>', methods=['GET'])
 def get_ad(book_id):
-    """Получение одной книги по ID"""
     try:
         books = get_books_from_gas()
         book = next((b for b in books if b.get("id") == book_id), None)
@@ -277,27 +247,8 @@ def get_ad(book_id):
         logger.error(f"❌ Ошибка: {e}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/delete_ad/<int:book_id>', methods=['DELETE'])
-def delete_ad(book_id):
-    """Удаление книги"""
-    try:
-        books = get_books_from_gas()
-        original_count = len(books)
-        books = [b for b in books if b.get("id") != book_id]
-        
-        if len(books) < original_count:
-            if save_books_to_gas(books):
-                logger.info(f"🗑️ Книга #{book_id} удалена")
-                return jsonify({"status": "ok", "message": "Книга удалена"}), 200
-        
-        return jsonify({"error": "Книга не найдена"}), 404
-    except Exception as e:
-        logger.error(f"❌ Ошибка: {e}")
-        return jsonify({"error": str(e)}), 500
-
 @app.route('/search', methods=['GET'])
 def search_books():
-    """Поиск книг"""
     try:
         query = request.args.get('q', '').lower()
         if not query:
@@ -325,14 +276,12 @@ def search_books():
 bot_app = None
 
 def setup_bot():
-    """Настройка бота и установка webhook"""
     global bot_app
     
     logger.info("🔧 Настройка бота...")
     
     bot_app = Application.builder().token(TOKEN).build()
     
-    # Добавляем обработчики
     bot_app.add_handler(CommandHandler("start", start))
     bot_app.add_handler(CommandHandler("help", help_command))
     bot_app.add_handler(CommandHandler("books", books_command))
@@ -349,7 +298,7 @@ def setup_bot():
         logger.info(f"✅ Webhook установлен")
         
         webhook_info = loop.run_until_complete(bot_app.bot.get_webhook_info())
-        logger.info(f"📡 Webhook info: {webhook_info.url}")
+        logger.info(f"📡 Webhook: {webhook_info.url}")
         
     except Exception as e:
         logger.error(f"❌ Ошибка webhook: {e}")
@@ -360,7 +309,7 @@ def setup_bot():
     logger.info("🤖 Бот готов!")
 
 @app.route('/webhook', methods=['POST'])
-async def webhook():
+def webhook():  # Синхронная функция, без async
     """Обработка webhook от Telegram"""
     if not bot_app:
         return jsonify({"error": "Bot not initialized"}), 500
@@ -368,7 +317,8 @@ async def webhook():
     try:
         json_data = request.get_json(force=True)
         update = Update.de_json(json_data, bot_app.bot)
-        await bot_app.process_update(update)
+        # Запускаем асинхронную обработку
+        asyncio.run(bot_app.process_update(update))
         return jsonify({"status": "ok"}), 200
     except Exception as e:
         logger.error(f"❌ Webhook error: {e}")
