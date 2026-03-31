@@ -13,55 +13,52 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 CORS(app)
 
-# ============ ПЕРЕМЕННЫЕ ============
+# ----- Переменные окружения -----
 TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 if not TOKEN:
-    logger.error("❌ Нет токена!")
+    logger.error("❌ TELEGRAM_BOT_TOKEN не задан")
     exit(1)
 
 RENDER_URL = os.environ.get('RENDER_EXTERNAL_URL', 'https://telegrambot-sbae.onrender.com')
 GAS_URL = "https://script.google.com/macros/s/AKfycbzc6t6LGck4FxCNO8Ayggoa5LNBOSne3JBPdPW8I7z4dFpAyTZb9G6iPkLJTVGtIOCh/exec"
 
-logger.info(f"✅ URL: {RENDER_URL}")
+logger.info(f"✅ Бот и сайт запускаются на {RENDER_URL}")
 
-# ============ РАБОТА С GAS (СОХРАНЕНИЕ В books.json) ============
+# ----- Работа с Google Apps Script (книги) -----
 def get_books():
-    """Загружает книги из Google Apps Script"""
     try:
-        r = requests.get(GAS_URL, timeout=10)
-        if r.status_code == 200:
-            data = r.json()
+        resp = requests.get(GAS_URL, timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
             books = data.get('books', [])
-            logger.info(f"✅ Загружено {len(books)} книг")
+            logger.info(f"📚 Загружено книг: {len(books)}")
             return books
         else:
-            logger.warning(f"⚠️ GAS вернул {r.status_code}")
+            logger.warning(f"⚠️ GAS ответил {resp.status_code}")
             return []
     except Exception as e:
-        logger.error(f"❌ Ошибка загрузки: {e}")
+        logger.error(f"❌ Ошибка получения книг: {e}")
         return []
 
 def save_books(books):
-    """Сохраняет книги в Google Apps Script"""
     try:
-        r = requests.post(GAS_URL, json={"books": books}, timeout=10)
-        if r.status_code == 200:
-            data = r.json()
-            # GAS может вернуть {"books": [...]} или {"success": true}
-            if 'books' in data or data.get('success'):
+        resp = requests.post(GAS_URL, json={"books": books}, timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get('success') or 'books' in data:
                 logger.info(f"✅ Сохранено {len(books)} книг")
                 return True
-        logger.error(f"❌ Ошибка сохранения: {r.status_code} - {r.text[:100]}")
+        logger.error(f"❌ Ошибка сохранения: {resp.status_code} {resp.text[:100]}")
         return False
     except Exception as e:
-        logger.error(f"❌ Ошибка: {e}")
+        logger.error(f"❌ Ошибка сохранения: {e}")
         return False
 
-# ============ КОМАНДЫ БОТА ============
+# ----- Команды бота -----
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [[InlineKeyboardButton("📚 Открыть Bookshelf", web_app=WebAppInfo(url=RENDER_URL))]]
     await update.message.reply_text(
-        "👋 Добро пожаловать в Bookshelf!\n\n👇 Нажми на кнопку",
+        "👋 Добро пожаловать в Bookshelf!\n\n👇 Нажми на кнопку, чтобы открыть приложение",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
@@ -70,12 +67,12 @@ async def books_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not books:
         await update.message.reply_text("📚 Книг пока нет")
         return
-    msg = "📚 Книги:\n\n"
+    msg = "📚 Последние книги:\n\n"
     for b in books[-10:]:
         msg += f"📖 {b.get('title', '?')} - {b.get('price', '?')} руб.\n"
     await update.message.reply_text(msg)
 
-# ============ FLASK МАРШРУТЫ ============
+# ----- Flask маршруты -----
 @app.route('/')
 def index():
     return send_from_directory('.', 'index.html')
@@ -97,11 +94,9 @@ def health():
 def save_ad():
     try:
         data = request.get_json()
-        logger.info(f"📥 Получено: {data}")
+        logger.info(f"📥 Получено объявление: {data}")
 
-        # Получаем текущие книги из GAS
         books = get_books()
-
         new_book = {
             "id": len(books) + 1,
             "title": data.get('title', 'Без названия'),
@@ -110,16 +105,14 @@ def save_ad():
             "contact": data.get('contact', ''),
             "date": __import__('datetime').datetime.now().isoformat()
         }
-
         books.append(new_book)
 
         if save_books(books):
             return jsonify({"status": "ok", "book": new_book}), 200
         else:
             return jsonify({"error": "Ошибка сохранения в GAS"}), 500
-
     except Exception as e:
-        logger.error(f"❌ Ошибка: {e}")
+        logger.error(f"❌ Ошибка в save_ad: {e}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/get_ads', methods=['GET'])
@@ -127,21 +120,22 @@ def get_ads():
     books = get_books()
     return jsonify({"books": books, "total": len(books)})
 
-# ============ ЗАПУСК БОТА В ФОНОВОМ ПОТОКЕ ============
+# ----- Запуск бота в отдельном потоке (polling) -----
 def run_bot():
     try:
-        bot_app = Application.builder().token(TOKEN).build()
-        bot_app.add_handler(CommandHandler("start", start))
-        bot_app.add_handler(CommandHandler("books", books_command))
-        logger.info("🚀 Бот запущен и работает!")
-        bot_app.run_polling(allowed_updates=Update.ALL_TYPES)
+        app_bot = Application.builder().token(TOKEN).build()
+        app_bot.add_handler(CommandHandler("start", start))
+        app_bot.add_handler(CommandHandler("books", books_command))
+        logger.info("🚀 Бот запущен (polling)")
+        app_bot.run_polling(allowed_updates=Update.ALL_TYPES)
     except Exception as e:
-        logger.error(f"❌ Ошибка бота: {e}")
+        logger.error(f"❌ Бот упал: {e}")
 
-bot_thread = threading.Thread(target=run_bot, daemon=True)
-bot_thread.start()
+# Запускаем бота в фоновом потоке, чтобы не блокировать Flask
+thread = threading.Thread(target=run_bot, daemon=True)
+thread.start()
 
-# ============ ЗАПУСК FLASK ============
+# ----- Запуск Flask -----
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 10000))
     app.run(host='0.0.0.0', port=port)
