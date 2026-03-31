@@ -4,7 +4,7 @@ import logging
 import asyncio
 import requests
 import json
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from telegram import Update, WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
@@ -111,11 +111,20 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ============ FLASK МАРШРУТЫ ============
 @app.route('/')
 def index():
-    return jsonify({"status": "ok", "books_count": len(get_books_from_gas())})
+    """Отдаем HTML страницу мини-приложения"""
+    return send_from_directory('.', 'index.html')
+
+@app.route('/style.css')
+def serve_css():
+    return send_from_directory('.', 'style.css')
+
+@app.route('/script.js')
+def serve_js():
+    return send_from_directory('.', 'script.js')
 
 @app.route('/health')
 def health():
-    return jsonify({"status": "healthy"})
+    return jsonify({"status": "healthy", "books_count": len(get_books_from_gas())})
 
 @app.route('/save_ad', methods=['POST'])
 def save_ad():
@@ -150,7 +159,6 @@ def webhook():
         if not json_data:
             return jsonify({"error": "No data"}), 400
         
-        # Создаем event loop для каждого запроса
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
@@ -173,13 +181,11 @@ def setup_bot():
     
     bot_app = Application.builder().token(TOKEN).build()
     
-    # Добавляем обработчики
     bot_app.add_handler(CommandHandler("start", start))
     bot_app.add_handler(CommandHandler("help", help_command))
     bot_app.add_handler(CommandHandler("books", books_command))
     bot_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
     
-    # Инициализируем приложение
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.run_until_complete(bot_app.initialize())
