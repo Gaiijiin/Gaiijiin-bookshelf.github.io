@@ -1,6 +1,7 @@
 import os
 import logging
 import threading
+import requests
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from telegram import Update, WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
@@ -19,10 +20,37 @@ if not TOKEN:
     exit(1)
 
 RENDER_URL = os.environ.get('RENDER_EXTERNAL_URL', 'https://telegrambot-sbae.onrender.com')
-logger.info(f"✅ Бот запущен: {RENDER_URL}")
+GAS_URL = "https://script.google.com/macros/s/AKfycbzc6t6LGck4FxCNO8Ayggoa5LNBOSne3JBPdPW8I7z4dFpAyTZb9G6iPkLJTVGtIOCh/exec"
 
-# ============ ХРАНИЛИЩЕ КНИГ ============
-books = []
+logger.info(f"✅ URL: {RENDER_URL}")
+
+# ============ РАБОТА С GAS ============
+def get_books():
+    try:
+        r = requests.get(GAS_URL, timeout=10)
+        if r.status_code == 200:
+            data = r.json()
+            books = data.get('books', [])
+            logger.info(f"✅ Загружено {len(books)} книг из GAS")
+            return books
+        return []
+    except Exception as e:
+        logger.error(f"❌ Ошибка загрузки: {e}")
+        return []
+
+def save_books(books):
+    try:
+        r = requests.post(GAS_URL, json={"books": books}, timeout=10)
+        if r.status_code == 200:
+            data = r.json()
+            if data.get('success') or 'books' in data:
+                logger.info(f"✅ Сохранено {len(books)} книг в GAS")
+                return True
+        logger.error(f"❌ Ошибка сохранения: {r.status_code}")
+        return False
+    except Exception as e:
+        logger.error(f"❌ Ошибка: {e}")
+        return False
 
 # ============ КОМАНДЫ БОТА ============
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -33,12 +61,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def books_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    books = get_books()
     if not books:
         await update.message.reply_text("📚 Книг пока нет")
         return
     msg = "📚 Книги:\n\n"
     for b in books[-10:]:
-        msg += f"📖 {b['title']} - {b['price']} руб.\n"
+        msg += f"📖 {b.get('title', '?')} - {b.get('price', '?')} руб.\n"
     await update.message.reply_text(msg)
 
 # ============ FLASK МАРШРУТЫ ============
@@ -56,6 +85,7 @@ def js():
 
 @app.route('/health')
 def health():
+    books = get_books()
     return jsonify({"status": "ok", "books": len(books)})
 
 @app.route('/save_ad', methods=['POST'])
@@ -63,6 +93,8 @@ def save_ad():
     try:
         data = request.get_json()
         logger.info(f"📥 Получено: {data}")
+        
+        books = get_books()
         
         new_book = {
             "id": len(books) + 1,
@@ -74,17 +106,22 @@ def save_ad():
         }
         
         books.append(new_book)
-        logger.info(f"✅ Книга сохранена: {new_book['title']}")
-        return jsonify({"status": "ok", "book": new_book}), 200
+        
+        if save_books(books):
+            return jsonify({"status": "ok", "book": new_book}), 200
+        else:
+            return jsonify({"error": "Ошибка сохранения"}), 500
+            
     except Exception as e:
         logger.error(f"❌ Ошибка: {e}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/get_ads', methods=['GET'])
 def get_ads():
+    books = get_books()
     return jsonify({"books": books, "total": len(books)})
 
-# ============ ЗАПУСК БОТА В ОТДЕЛЬНОМ ПОТОКЕ ============
+# ============ ЗАПУСК БОТА ============
 def run_bot():
     try:
         bot_app = Application.builder().token(TOKEN).build()
@@ -95,7 +132,6 @@ def run_bot():
     except Exception as e:
         logger.error(f"❌ Ошибка бота: {e}")
 
-# Запускаем бота в фоновом потоке
 bot_thread = threading.Thread(target=run_bot, daemon=True)
 bot_thread.start()
 
