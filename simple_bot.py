@@ -4,6 +4,8 @@ import logging
 import asyncio
 import requests
 import json
+import threading
+import time
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from telegram import Update, WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
@@ -31,6 +33,21 @@ if not TOKEN:
 
 RENDER_URL = clean_url(os.environ.get('RENDER_EXTERNAL_URL', 'https://telegrambot-sbae.onrender.com'))
 logger.info(f"✅ Бот запущен: {RENDER_URL}")
+
+# ============ KEEP-ALIVE ============
+def keep_alive():
+    while True:
+        time.sleep(240)
+        try:
+            requests.get(f"https://{RENDER_URL}", timeout=10)
+            logger.info("🏓 Keep-alive ping")
+        except:
+            pass
+
+if "localhost" not in RENDER_URL:
+    ping_thread = threading.Thread(target=keep_alive, daemon=True)
+    ping_thread.start()
+    logger.info("🔄 Keep-alive активирован")
 
 # ============ КОНСТАНТЫ ============
 GAS_URL = "https://script.google.com/macros/s/AKfycbzc6t6LGck4FxCNO8Ayggoa5LNBOSne3JBPdPW8I7z4dFpAyTZb9G6iPkLJTVGtIOCh/exec"
@@ -173,7 +190,10 @@ def setup():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.run_until_complete(bot_app.initialize())
-    loop.run_until_complete(bot_app.bot.set_webhook(f"{RENDER_URL}/webhook"))
+    loop.run_until_complete(bot_app.bot.set_webhook(
+        url=f"{RENDER_URL}/webhook",
+        timeout=60  # увеличиваем таймаут
+    ))
     loop.close()
     logger.info("✅ Бот готов!")
 
