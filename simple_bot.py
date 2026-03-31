@@ -99,32 +99,31 @@ def save_ad():
 def get_ads():
     return jsonify({"books": books_db, "total": len(books_db)})
 
-# ============ ЗАПУСК БОТА (С ПРАВИЛЬНЫМ EVENT LOOP) ============
+# ============ ЗАПУСК БОТА (В ГЛАВНОМ ПОТОКЕ) ============
 def run_bot():
-    """Запускает бота с polling в правильном event loop"""
+    """Запускает бота с polling в главном потоке"""
     try:
-        # Создаем новый event loop для этого потока
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
         # Создаем приложение
         bot_app = Application.builder().token(TOKEN).build()
         bot_app.add_handler(CommandHandler("start", start))
         bot_app.add_handler(CommandHandler("books", books_command))
         
         logger.info("🚀 Запуск бота с polling...")
-        # Запускаем polling (работает в текущем loop)
+        # Запускаем polling (блокирует поток)
         bot_app.run_polling(allowed_updates=Update.ALL_TYPES)
         
     except Exception as e:
         logger.error(f"❌ Ошибка бота: {e}")
 
-# Запускаем бота в отдельном потоке
-bot_thread = threading.Thread(target=run_bot, daemon=True)
-bot_thread.start()
-
-# ============ ЗАПУСК FLASK ============
-if __name__ == "__main__":
+# ============ ЗАПУСК FLASK В ОТДЕЛЬНОМ ПОТОКЕ ============
+def run_flask():
     port = int(os.environ.get('PORT', 10000))
-    logger.info(f"🚀 Запуск Flask на порту {port}")
     app.run(host='0.0.0.0', port=port)
+
+# Запускаем Flask в отдельном потоке
+flask_thread = threading.Thread(target=run_flask, daemon=True)
+flask_thread.start()
+
+# Запускаем бота в главном потоке
+if __name__ == "__main__":
+    run_bot()
