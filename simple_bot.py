@@ -41,10 +41,10 @@ if not RENDER_URL:
 
 logger.info(f"✅ Бот запущен: {RENDER_URL}")
 
-# ============ KEEP-ALIVE (сервер не засыпает) ============
+# ============ KEEP-ALIVE ============
 def keep_alive():
     while True:
-        time.sleep(240)  # каждые 4 минуты
+        time.sleep(240)
         try:
             requests.get(f"https://{RENDER_URL}", timeout=10)
             logger.info("🏓 Keep-alive ping")
@@ -54,7 +54,7 @@ def keep_alive():
 if RENDER_URL and "localhost" not in RENDER_URL:
     ping_thread = threading.Thread(target=keep_alive, daemon=True)
     ping_thread.start()
-    logger.info("🔄 Keep-alive активирован (пинг каждые 4 минуты)")
+    logger.info("🔄 Keep-alive активирован")
 
 # ============ РАБОТА С GAS ============
 def get_books_from_gas():
@@ -67,38 +67,58 @@ def get_books_from_gas():
             return books
         return []
     except Exception as e:
-        logger.error(f"❌ Ошибка GAS: {e}")
+        logger.error(f"❌ Ошибка GAS GET: {e}")
         return []
 
 def save_books_to_gas(books_list):
     try:
-        response = requests.post(GAS_URL, json={"books": books_list}, timeout=30)
+        logger.info(f"📤 Отправка в GAS {len(books_list)} книг")
+        payload = {"books": books_list}
+        response = requests.post(GAS_URL, json=payload, timeout=30)
+        logger.info(f"📡 GAS ответ: статус {response.status_code}")
+        
         if response.status_code == 200:
             result = response.json()
+            logger.info(f"📡 GAS результат: {result}")
             if result.get('success'):
-                logger.info(f"✅ Сохранено {len(books_list)} книг")
+                logger.info(f"✅ Сохранено {len(books_list)} книг в GAS")
                 return True
-        logger.error(f"❌ Ошибка сохранения: {response.status_code}")
-        return False
+            else:
+                logger.error(f"❌ GAS ошибка: {result.get('error')}")
+                return False
+        else:
+            logger.error(f"❌ GAS HTTP ошибка: {response.status_code}")
+            logger.error(f"❌ Ответ: {response.text[:200]}")
+            return False
     except Exception as e:
-        logger.error(f"❌ Ошибка: {e}")
+        logger.error(f"❌ Ошибка сохранения в GAS: {e}")
         return False
 
 def add_book_to_gas(title, author, price, description, contact):
+    logger.info(f"📝 Добавление книги: {title}")
     books = get_books_from_gas()
+    
     new_book = {
         "id": len(books) + 1,
         "title": title,
         "author": author,
-        "price": price,
-        "description": description,
+        "genre": "другое",
+        "condition": "хорошее",
+        "price": int(price),
         "contact": contact,
+        "sellerName": contact,
+        "description": description,
         "created_at": __import__('datetime').datetime.now().isoformat()
     }
+    
     books.append(new_book)
+    
     if save_books_to_gas(books):
+        logger.info(f"✅ Книга сохранена: {title}")
         return True, new_book
-    return False, None
+    else:
+        logger.error(f"❌ Не удалось сохранить книгу: {title}")
+        return False, None
 
 # ============ КОМАНДЫ БОТА ============
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -164,27 +184,47 @@ def health():
 def save_ad():
     try:
         data = request.get_json()
-        if not data.get('title'):
+        logger.info(f"📥 Получен запрос /save_ad: {data}")
+        
+        if not data:
+            logger.error("❌ Нет данных в запросе")
+            return jsonify({"error": "Нет данных"}), 400
+            
+        title = data.get('title')
+        if not title:
+            logger.error("❌ Нет названия книги")
             return jsonify({"error": "Название обязательно"}), 400
         
-        success, book = add_book_to_gas(
-            data.get('title'),
-            data.get('author', 'Не указан'),
-            data.get('price', 'Не указана'),
-            data.get('description', ''),
-            data.get('contact', '')
-        )
+        author = data.get('author', 'Не указан')
+        price = data.get('price', 0)
+        description = data.get('description', '')
+        contact = data.get('contact', '')
+        
+        logger.info(f"📚 Сохраняем книгу: {title}, {author}, {price}")
+        
+        success, book = add_book_to_gas(title, author, price, description, contact)
+        
         if success:
-            return jsonify({"status": "ok", "book": book}), 200
+            logger.info(f"✅ Книга успешно сохранена: {book}")
+            return jsonify({"status": "ok", "message": "Книга добавлена", "book": book}), 200
         else:
-            return jsonify({"error": "Ошибка сохранения"}), 500
+            logger.error(f"❌ Ошибка сохранения книги")
+            return jsonify({"error": "Ошибка сохранения в GAS"}), 500
+            
     except Exception as e:
-        logger.error(f"❌ Ошибка save_ad: {e}")
+        logger.error(f"❌ Критическая ошибка в save_ad: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         return jsonify({"error": str(e)}), 500
 
 @app.route('/get_ads', methods=['GET'])
 def get_ads():
-    return jsonify({"books": get_books_from_gas(), "total": len(get_books_from_gas())})
+    try:
+        books = get_books_from_gas()
+        return jsonify({"books": books, "total": len(books)}), 200
+    except Exception as e:
+        logger.error(f"❌ Ошибка get_ads: {e}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
@@ -197,17 +237,9 @@ def webhook():
         if not json_data:
             return jsonify({"error": "No data"}), 400
         
-        # Создаем новый event loop для каждого запроса
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            update = Update.de_json(json_data, bot_app.bot)
-            loop.run_until_complete(bot_app.process_update(update))
-        except RuntimeError as e:
-            logger.error(f"❌ RuntimeError: {e}")
-            # Пробуем еще раз с новым loop
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
             update = Update.de_json(json_data, bot_app.bot)
             loop.run_until_complete(bot_app.process_update(update))
         finally:
@@ -225,7 +257,6 @@ def setup_bot():
     global bot_app
     logger.info("🔧 Настройка бота...")
     
-    # Создаем постоянный event loop
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     
@@ -236,12 +267,10 @@ def setup_bot():
     bot_app.add_handler(CommandHandler("books", books_command))
     bot_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
     
-    # Инициализируем и устанавливаем webhook
     loop.run_until_complete(bot_app.initialize())
     loop.run_until_complete(bot_app.bot.set_webhook(f"{RENDER_URL}/webhook"))
     logger.info(f"✅ Webhook установлен: {RENDER_URL}/webhook")
     
-    # НЕ закрываем loop здесь!
     logger.info("🤖 Бот готов!")
 
 # ============ ЗАПУСК ============
