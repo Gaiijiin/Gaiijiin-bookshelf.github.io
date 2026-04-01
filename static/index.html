@@ -1,1 +1,361 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <title>КНИЖНЫЙ ШКАФ</title>
+</head>
+<body>
 
+<!-- ========== КРАСИВЫЙ ЛОАДЕР ========== -->
+<style>
+    .render-loading {
+        display: none !important;
+    }
+    
+    .bookshelf-loader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #0a2f1a 0%, #0f3d24 100%);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        flex-direction: column;
+        gap: 25px;
+        transition: opacity 0.5s ease;
+    }
+    
+    .loader-animation {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .loader-book {
+        font-size: 4rem;
+        animation: bookFloat 1.2s ease-in-out infinite;
+        filter: drop-shadow(0 0 10px rgba(255, 51, 102, 0.5));
+    }
+    
+    .loader-book:nth-child(1) { animation-delay: 0s; }
+    .loader-book:nth-child(2) { animation-delay: 0.2s; }
+    .loader-book:nth-child(3) { animation-delay: 0.4s; }
+    
+    @keyframes bookFloat {
+        0%, 100% {
+            transform: translateY(0) scale(1);
+            opacity: 0.6;
+        }
+        50% {
+            transform: translateY(-25px) scale(1.1);
+            opacity: 1;
+            filter: drop-shadow(0 0 20px #ff3366);
+        }
+    }
+    
+    .loader-title {
+        font-family: 'Bebas Neue', 'Montserrat', sans-serif;
+        font-size: 2.5rem;
+        letter-spacing: 4px;
+        background: linear-gradient(90deg, #ff6699, #ff3366, #ff6699);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        animation: titlePulse 1.5s ease infinite;
+    }
+    
+    @keyframes titlePulse {
+        0%, 100% { opacity: 0.7; letter-spacing: 4px; }
+        50% { opacity: 1; letter-spacing: 6px; }
+    }
+    
+    .loader-subtitle {
+        color: #99bba8;
+        font-family: 'Montserrat', sans-serif;
+        font-size: 0.8rem;
+        letter-spacing: 2px;
+        display: flex;
+        gap: 5px;
+    }
+    
+    .loader-dot {
+        animation: dotPulse 1.4s ease infinite;
+    }
+    .loader-dot:nth-child(1) { animation-delay: 0s; }
+    .loader-dot:nth-child(2) { animation-delay: 0.2s; }
+    .loader-dot:nth-child(3) { animation-delay: 0.4s; }
+    
+    @keyframes dotPulse {
+        0%, 100% { opacity: 0.3; }
+        50% { opacity: 1; }
+    }
+    
+    .loader-progress {
+        width: 200px;
+        height: 2px;
+        background: rgba(255, 51, 102, 0.3);
+        border-radius: 2px;
+        overflow: hidden;
+        margin-top: 10px;
+    }
+    
+    .loader-progress-bar {
+        width: 0%;
+        height: 100%;
+        background: linear-gradient(90deg, #ff6699, #ff3366);
+        animation: progressBar 1.2s ease infinite;
+        border-radius: 2px;
+    }
+    
+    @keyframes progressBar {
+        0% { width: 0%; }
+        50% { width: 70%; }
+        100% { width: 100%; }
+    }
+    
+    body {
+        opacity: 0;
+        transition: opacity 0.5s ease;
+    }
+    
+    body.loaded {
+        opacity: 1;
+    }
+</style>
+
+<div class="bookshelf-loader" id="bookshelfLoader">
+    <div class="loader-animation">
+        <span class="loader-book">📚</span>
+        <span class="loader-book">📖</span>
+        <span class="loader-book">📘</span>
+    </div>
+    <div class="loader-title">BOOKSHELF</div>
+    <div class="loader-subtitle">
+        <span>загрузка</span>
+        <span class="loader-dot">.</span>
+        <span class="loader-dot">.</span>
+        <span class="loader-dot">.</span>
+    </div>
+    <div class="loader-progress">
+        <div class="loader-progress-bar"></div>
+    </div>
+</div>
+
+<script>
+    const style = document.createElement('style');
+    style.textContent = '.render-loading, #loading, .loading { display: none !important; }';
+    document.head.appendChild(style);
+    
+    window.addEventListener('load', () => {
+        document.body.classList.add('loaded');
+        const loader = document.getElementById('bookshelfLoader');
+        if (loader) {
+            setTimeout(() => {
+                loader.style.opacity = '0';
+                setTimeout(() => loader.remove(), 500);
+            }, 800);
+        }
+    });
+    
+    setTimeout(() => {
+        if (document.body.classList.contains('loaded')) {
+            const loader = document.getElementById('bookshelfLoader');
+            if (loader && loader.style.opacity !== '0') {
+                loader.style.opacity = '0';
+                setTimeout(() => loader.remove(), 500);
+            }
+        }
+    }, 500);
+</script>
+<!-- ========== КОНЕЦ ЛОАДЕРА ========== -->
+
+    <header class="premium-header">
+        <h1 class="glow-title" id="typing-title"></h1>
+    </header>
+    <div class="premium-line"></div>
+
+    <p class="subtitle">Читай | Покупай | Продавай</p>
+
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="read">📖 Читать</button>
+        <button class="tab-btn" data-tab="sell">💰 Продать</button>
+        <button class="tab-btn" data-tab="buy">🛒 Купить</button>
+        <button class="tab-btn" data-tab="support">☕ Поддержка</button>
+    </div>
+
+    <!-- ========== ВКЛАДКА ЧИТАТЬ ========== -->
+    <div id="read" class="tab-content active">
+        <div class="buy-controls">
+            <div class="filters-group">
+                <button class="genre-btn active" id="readAllBtn">📚 Все</button>
+                <div class="dropdown">
+                    <button class="genre-btn dropdown-btn" id="readDropdownBtn">📖 Жанры ▼</button>
+                    <div class="dropdown-content" id="readDropdownContent">
+                        <button data-genre="manga">Манга</button>
+                        <button data-genre="ranobe">Ранобэ</button>
+                        <button data-genre="comics">Комиксы</button>
+                        <button data-genre="classic">Классика</button>
+                        <button data-genre="modern">Романы 21 века</button>
+                        <button data-genre="fantasy">Фэнтези</button>
+                        <button data-genre="thriller">Триллер</button>
+                        <button data-genre="dark">Дарк</button>
+                        <button data-genre="detective">Детектив</button>
+                        <button data-genre="horror">Ужасы</button>
+                        <button data-genre="romance">Романтика</button>
+                        <button data-genre="sci-fi">Научная фантастика</button>
+                        <button data-genre="adventure">Приключения</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="premium-line"></div>
+        <div id="read-books-list"></div>
+    </div>
+
+    <!-- ========== ВКЛАДКА ПРОДАТЬ ========== -->
+    <div id="sell" class="tab-content">
+        <div class="disclaimer">
+            <strong>⚠️ Правила продажи:</strong><br>
+            • Честное и подробное описание книги<br>
+            • Укажите реальное состояние (отличное / хорошее / с дефектами)<br>
+            • Цена должна быть актуальной и обоснованной<br>
+            • Фото книги предоставляются по запросу покупателя<br>
+            • После продажи удалите объявление самостоятельно (кнопка «Удалить товар»)<br><br>
+            📌 Если есть вопросы — напишите <a href="https://t.me/prokopov13" target="_blank" style="color: #ff99bb; text-decoration: none;">@prokopov13</a>
+        </div>
+
+        <form id="sell-form">
+            <div class="form-group"><label>📚 Название</label><input type="text" id="title" placeholder="Берсерк. Том 1" required></div>
+            <div class="form-group"><label>✍️ Автор</label><input type="text" id="author" placeholder="Кэнтаро Миура" required></div>
+            <div class="form-group"><label>📖 Жанр</label>
+                <select id="genre">
+                    <option>Манга</option>
+                    <option>Ранобэ</option>
+                    <option>Комиксы</option>
+                    <option>Классика</option>
+                    <option>Роман 21 века</option>
+                    <option>Другое</option>
+                </select>
+            </div>
+            <div class="form-group"><label>📄 Состояние</label>
+                <select id="condition">
+                    <option>отличное</option>
+                    <option>хорошее</option>
+                    <option>удовлетворительное</option>
+                </select>
+            </div>
+            <div class="form-group"><label>💰 Цена (₽)</label><input type="number" id="price" placeholder="500" required></div>
+            <div class="form-group"><label>📱 Ваш Telegram</label><input type="text" id="contact" placeholder="@username" required></div>
+            <button type="submit" class="submit-btn">📤 Отправить объявление</button>
+        </form>
+    </div>
+
+    <!-- ========== ВКЛАДКА КУПИТЬ ========== -->
+    <div id="buy" class="tab-content">
+        <div class="disclaimer">⚠️ Площадка сводит покупателя и продавца. Мы не отвечаем за сделки. Фото и детали уточняйте у продавца.</div>
+        
+        <div class="buy-controls">
+            <div class="filters-group">
+                <button class="genre-btn active" id="buyAllBtn">📚 Все</button>
+                <div class="dropdown">
+                    <button class="genre-btn dropdown-btn" id="buyDropdownBtn">📖 Жанры ▼</button>
+                    <div class="dropdown-content" id="buyDropdownContent">
+                        <button data-buy-genre="манга">Манга</button>
+                        <button data-buy-genre="ранобэ">Ранобэ</button>
+                        <button data-buy-genre="комиксы">Комиксы</button>
+                        <button data-buy-genre="классика">Классика</button>
+                        <button data-buy-genre="роман21">Романы 21 века</button>
+                        <button data-buy-genre="фэнтези">Фэнтези</button>
+                        <button data-buy-genre="триллер">Триллер</button>
+                        <button data-buy-genre="дарк">Дарк</button>
+                        <button data-buy-genre="детектив">Детектив</button>
+                        <button data-buy-genre="ужасы">Ужасы</button>
+                        <button data-buy-genre="романтика">Романтика</button>
+                        <button data-buy-genre="sci-fi">Научная фантастика</button>
+                        <button data-buy-genre="приключения">Приключения</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 Поиск по названию" autocomplete="off">
+                <button id="searchClearBtn" class="search-clear" style="display: none;">✖</button>
+            </div>
+        </div>
+        <div class="premium-line"></div>
+        <div id="buy-books-list"></div>
+    </div>
+
+    <!-- ========== ВКЛАДКА ПОДДЕРЖКА ========== -->
+    <div id="support" class="tab-content">
+        <div class="support-card">
+            <div class="support-icon">☕</div>
+            <h3>Поддержать проект</h3>
+            <p>Если вам нравится BOOKSHELF — вы можете поддержать наше развитие</p>
+            <div style="display: flex; justify-content: center;">
+                <a href="https://www.donationalerts.com/r/bygaijin" target="_blank" class="donate-link-square">Поддержать →</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальные окна -->
+    <div id="reviewModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeReviewModal()">&times;</span>
+            <h3>✍️ Оставить отзыв</h3>
+            <p id="modalBookTitle"></p>
+            <input type="hidden" id="modalBookId">
+            <div class="form-group">
+                <label>⭐ Оценка</label>
+                <select id="reviewRating">
+                    <option value="5">★★★★★ (5)</option>
+                    <option value="4">★★★★☆ (4)</option>
+                    <option value="3">★★★☆☆ (3)</option>
+                    <option value="2">★★☆☆☆ (2)</option>
+                    <option value="1">★☆☆☆☆ (1)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>📝 Текст отзыва</label>
+                <textarea id="reviewText" rows="3" placeholder="Поделитесь впечатлениями..."></textarea>
+            </div>
+            <button class="submit-btn" onclick="submitReview()">📤 Отправить отзыв</button>
+        </div>
+    </div>
+
+    <div id="editReviewModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeEditReviewModal()">&times;</span>
+            <h3>✏️ Редактировать отзыв</h3>
+            <input type="hidden" id="editBookId">
+            <input type="hidden" id="editReviewIndex">
+            <div class="form-group">
+                <label>⭐ Оценка</label>
+                <select id="editReviewRating"></select>
+            </div>
+            <div class="form-group">
+                <label>📝 Текст отзыва</label>
+                <textarea id="editReviewText" rows="3"></textarea>
+            </div>
+            <button class="submit-btn" onclick="updateReview()">💾 Сохранить</button>
+            <button class="delete-btn" onclick="deleteReview()">🗑️ Удалить отзыв</button>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-line"></div>
+        <p class="copyright">© 2026 · BOOKSHELF · ваш шкаф с историями</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
