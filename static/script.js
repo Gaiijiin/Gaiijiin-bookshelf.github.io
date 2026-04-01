@@ -488,6 +488,9 @@ document.querySelector('.glow-title')?.addEventListener('click', () => {
 });
 
 // ========== ФОРМА ПРОДАЖИ (ОТПРАВКА НА СЕРВЕР) ==========
+import { db } from './firebase.js';
+import { collection, addDoc } from "firebase/firestore";
+
 document.getElementById('sell-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -508,13 +511,24 @@ document.getElementById('sell-form').addEventListener('submit', async (e) => {
         price: parseInt(document.getElementById('price').value),
         contact: document.getElementById('contact').value.trim(),
         sellerName: document.getElementById('contact').value.trim(),
-        description: ''
+        description: '',
+        date: new Date().toISOString().split("T")[0] // добавляем дату
     };
     
     if (!bookData.title || !bookData.author || !bookData.price || !bookData.contact) {
         alert('❌ Заполните все поля');
         return;
     }
+
+    try {
+        await addDoc(collection(db, "books"), bookData);
+        alert('✅ Книга успешно добавлена!');
+        document.getElementById('sell-form').reset();
+    } catch (error) {
+        console.error("Ошибка добавления книги:", error);
+        alert('❌ Ошибка при добавлении книги');
+    }
+});
     
     // Показываем индикатор загрузки
     const submitBtn = e.target.querySelector('button[type="submit"]');
