@@ -18,8 +18,11 @@ app = Flask(__name__, static_folder='static')
 CORS(app)
 
 TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
-RENDER_URL = os.environ.get('RENDER_EXTERNAL_URL')
+if not TOKEN:
+    logger.error("❌ TELEGRAM_BOT_TOKEN не задан")
+    exit(1)
 
+RENDER_URL = os.environ.get('RENDER_EXTERNAL_URL', 'https://telegrambot-sbae.onrender.com')
 GAS_URL = "https://script.google.com/macros/s/AKfycbzc6t6LGck4FxCNO8Ayggoa5LNBOSne3JBPdPW8I7z4dFpAyTZb9G6iPkLJTVGtIOCh/exec"
 
 CACHE = {"books": [], "timestamp": 0}
@@ -46,9 +49,8 @@ def get_books(force=False):
         CACHE["timestamp"] = now
 
         return books
-
     except Exception as e:
-        logger.error(e)
+        logger.error(f"❌ Ошибка загрузки книг: {e}")
         return CACHE["books"]
 
 
@@ -59,10 +61,10 @@ def save_books(books):
             return False
 
         data = r.json()
-        return data.get("success") is True
-
+        # Успешно, если GAS вернул поле "books" или "success": true
+        return 'books' in data or data.get('success') is True
     except Exception as e:
-        logger.error(e)
+        logger.error(f"❌ Ошибка сохранения книг: {e}")
         return False
 
 
@@ -121,7 +123,6 @@ def get_ads():
 def save_ad():
     try:
         data = request.get_json()
-
         if not data or 'title' not in data:
             return jsonify({"error": "Invalid data"}), 400
 
@@ -152,7 +153,7 @@ def save_ad():
         return jsonify({"status": "ok", "book": new_book})
 
     except Exception as e:
-        logger.error(e)
+        logger.error(f"❌ save_ad ошибка: {e}")
         return jsonify({"error": "server error"}), 500
 
 
@@ -162,12 +163,10 @@ def run_bot():
     asyncio.set_event_loop(loop)
 
     bot = Application.builder().token(TOKEN).build()
-
     bot.add_handler(CommandHandler("start", start))
     bot.add_handler(CommandHandler("books", books_command))
 
     logger.info("🚀 Бот запущен")
-
     bot.run_polling(drop_pending_updates=True)
 
 
