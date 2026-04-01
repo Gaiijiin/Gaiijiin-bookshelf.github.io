@@ -11,28 +11,23 @@ from flask_cors import CORS
 from telegram import Update, WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes
 
-# ----- Логи -----
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ----- Flask -----
 app = Flask(__name__, static_folder='static')
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app)
 
-# ----- ENV -----
-TOKEN_1 = os.environ.get('TELEGRAM_BOT_TOKEN_1')
-TOKEN_2 = os.environ.get('TELEGRAM_BOT_TOKEN_2')
+TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
+RENDER_URL = os.environ.get('RENDER_EXTERNAL_URL')
 
-RENDER_URL = os.environ.get('RENDER_EXTERNAL_URL', 'https://your-app.onrender.com')
 GAS_URL = "https://script.google.com/macros/s/AKfycbzc6t6LGck4FxCNO8Ayggoa5LNBOSne3JBPdPW8I7z4dFpAyTZb9G6iPkLJTVGtIOCh/exec"
 
-# ----- КЕШ -----
 CACHE = {"books": [], "timestamp": 0}
 CACHE_TTL = 10
 
 lock = threading.Lock()
 
-# ----- Google Script -----
+# ----- DATA -----
 def get_books(force=False):
     now = time.time()
 
@@ -53,7 +48,7 @@ def get_books(force=False):
         return books
 
     except Exception as e:
-        logger.error(f"GAS GET error: {e}")
+        logger.error(e)
         return CACHE["books"]
 
 
@@ -67,11 +62,11 @@ def save_books(books):
         return data.get("success") is True
 
     except Exception as e:
-        logger.error(f"GAS POST error: {e}")
+        logger.error(e)
         return False
 
 
-# ----- Telegram -----
+# ----- TELEGRAM -----
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message:
         return
@@ -106,17 +101,7 @@ async def books_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(msg)
 
 
-# ----- Премиум бот -----
-async def premium(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message:
-        return
-
-    await update.message.reply_text(
-        "💎 Премиум режим\n\nСкоро будет оплата и расширенные функции 🚀"
-    )
-
-
-# ----- Flask Routes -----
+# ----- FLASK -----
 @app.route('/')
 def index():
     return send_from_directory('static', 'index.html')
@@ -127,15 +112,9 @@ def static_files(path):
     return send_from_directory('static', path)
 
 
-@app.route('/health')
-def health():
-    return jsonify({"status": "ok"})
-
-
 @app.route('/get_ads')
 def get_ads():
-    books = get_books()
-    return jsonify({"books": books})
+    return jsonify({"books": get_books()})
 
 
 @app.route('/save_ad', methods=['POST'])
@@ -148,7 +127,7 @@ def save_ad():
 
         try:
             price = float(data.get('price', 0))
-        except (ValueError, TypeError):
+        except:
             price = 0
 
         new_book = {
@@ -173,37 +152,29 @@ def save_ad():
         return jsonify({"status": "ok", "book": new_book})
 
     except Exception as e:
-        logger.error(f"save_ad error: {e}")
+        logger.error(e)
         return jsonify({"error": "server error"}), 500
 
 
-# ----- Запуск бота -----
-def run_bot(token, is_premium=False):
+# ----- BOT -----
+def run_bot():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
-    bot = Application.builder().token(token).build()
+    bot = Application.builder().token(TOKEN).build()
 
     bot.add_handler(CommandHandler("start", start))
     bot.add_handler(CommandHandler("books", books_command))
 
-    if is_premium:
-        bot.add_handler(CommandHandler("premium", premium))
-
-    logger.info(f"🚀 Бот запущен: {'premium' if is_premium else 'main'}")
+    logger.info("🚀 Бот запущен")
 
     bot.run_polling(drop_pending_updates=True)
 
 
-# ----- Стартуем ботов -----
-if os.environ.get("RUN_BOT_1", "true") == "true" and TOKEN_1:
-    threading.Thread(target=run_bot, args=(TOKEN_1, False), daemon=True).start()
-
-if os.environ.get("RUN_BOT_2", "false") == "true" and TOKEN_2:
-    threading.Thread(target=run_bot, args=(TOKEN_2, True), daemon=True).start()
+threading.Thread(target=run_bot, daemon=True).start()
 
 
-# ----- Render -----
+# ----- START -----
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 10000))
     app.run(host='0.0.0.0', port=port)
