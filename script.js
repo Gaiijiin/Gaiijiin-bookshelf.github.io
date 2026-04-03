@@ -635,6 +635,7 @@ document.querySelectorAll('#readDropdownContent button').forEach(btn => {
         document.getElementById('readDropdownBtn').innerHTML = (genreNames[genre] || '📖 Жанры') + ' ▼';
         
         renderReadBooks();
+        filterReadBooks();
         document.getElementById('readDropdownContent').style.display = 'none';
     });
 });
