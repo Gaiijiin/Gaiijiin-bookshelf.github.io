@@ -191,40 +191,40 @@
         <button class="tab-btn" data-tab="buy">🛒 Купить</button>
         <button class="tab-btn" data-tab="support">☕ Поддержка</button>
     </div>
-
-    <!-- ========== ВКЛАДКА ЧИТАТЬ ========== -->
-    <div id="read" class="tab-content active">
-        <div class="buy-controls">
-            <div class="filters-group">
-                <button class="genre-btn active" id="readAllBtn">📚 Все</button>
-                <div class="dropdown">
-                    <button class="genre-btn dropdown-btn" id="readDropdownBtn">📖 Жанры ▼</button>
-                    <div class="dropdown-content" id="readDropdownContent">
-                        <button data-genre="manga">Манга</button>
-                        <button data-genre="ranobe">Ранобэ</button>
-                        <button data-genre="comics">Комиксы</button>
-                        <button data-genre="classic">Классика</button>
-                        <button data-genre="modern">Романы 21 века</button>
-                        <button data-genre="fantasy">Фэнтези</button>
-                        <button data-genre="thriller">Триллер</button>
-                        <button data-genre="dark">Дарк</button>
-                        <button data-genre="detective">Детектив</button>
-                        <button data-genre="horror">Ужасы</button>
-                        <button data-genre="romance">Романтика</button>
-                        <button data-genre="sci-fi">Научная фантастика</button>
-                        <button data-genre="adventure">Приключения</button>
-                    </div>
+<!-- ========== ВКЛАДКА ЧИТАТЬ ========== -->
+<div id="read" class="tab-content active">
+    <div class="buy-controls">
+        <div class="filters-group">
+            <button class="genre-btn active" id="readAllBtn">📚 Все</button>
+            <div class="dropdown">
+                <button class="genre-btn dropdown-btn" id="readDropdownBtn">📖 Жанры ▼</button>
+                <div class="dropdown-content" id="readDropdownContent">
+                    <button data-genre="manga">Манга</button>
+                    <button data-genre="ranobe">Ранобэ</button>
+                    <button data-genre="comics">Комиксы</button>
+                    <button data-genre="classic">Классика</button>
+                    <button data-genre="modern">Романы 21 века</button>
+                    <button data-genre="fantasy">Фэнтези</button>
+                    <button data-genre="thriller">Триллер</button>
+                    <button data-genre="dark">Дарк</button>
+                    <button data-genre="detective">Детектив</button>
+                    <button data-genre="horror">Ужасы</button>
+                    <button data-genre="romance">Романтика</button>
+                    <button data-genre="sci-fi">Научная фантастика</button>
+                    <button data-genre="adventure">Приключения</button>
                 </div>
             </div>
         </div>
-        <div class="premium-line"></div>
-          <!-- ========== поиск  ========== -->
-        <div class="search-box" style="margin-bottom: 15px;">
-    <input type="text" id="readSearchInput" placeholder="🔍 Поиск по названию" autocomplete="off">
-    <button id="readSearchClearBtn" class="search-clear" style="display: none;">✖</button>
-</div>
-        <div id="read-books-list"></div>
+        <!-- Поле поиска справа -->
+        <div class="search-box">
+            <input type="text" id="readSearchInput" placeholder="🔍 Поиск по названию" autocomplete="off">
+            <button id="readSearchClearBtn" class="search-clear" style="display: none;">✖</button>
+        </div>
     </div>
+    <div class="premium-line"></div>
+    <div id="read-books-list"></div>
+</div>
+    
 
     <!-- ========== ВКЛАДКА ПРОДАТЬ ========== -->
     <div id="sell" class="tab-content">
