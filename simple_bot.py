@@ -17,6 +17,10 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 CORS(app)  # разрешаем запросы с GitHub Pages
 
+@app.route('/health')
+def health():
+    return "OK", 200
+    
 # ----- Конфигурация -----
 TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 if not TOKEN:
