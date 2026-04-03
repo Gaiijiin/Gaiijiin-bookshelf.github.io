@@ -6,7 +6,7 @@ if (tg) {
 }
 const isTelegram = !!tg?.initData;
 
-// ========== SUPABASE (прямое подключение) ==========
+// ========== SUPABASE (ПРЯМОЕ ПОДКЛЮЧЕНИЕ) ==========
 const SUPABASE_URL = 'https://tebovawnnybsglhznoha.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlYm92YXdubnlic2dsaHpub2hhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyMDY1MzcsImV4cCI6MjA5MDc4MjUzN30.aRdc6JZs0BKyDTCjGbTUZUn7X212ZATtgk8sK25E1EU';
 
@@ -84,7 +84,7 @@ async function saveBookToSupabase(bookData) {
             body: JSON.stringify(bookData)
         });
         if (response.ok) {
-            // Не пытаемся читать JSON, просто возвращаем успех
+            // После успешного сохранения не ждём тело ответа (оно может быть пустым)
             return { success: true, book: bookData };
         } else {
             const error = await response.text();
@@ -93,6 +93,22 @@ async function saveBookToSupabase(bookData) {
     } catch (error) {
         console.error('❌ Ошибка отправки:', error);
         return { success: false, error: error.message };
+    }
+}
+
+async function deleteBookFromSupabase(bookId) {
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/books?id=eq.${bookId}`, {
+            method: 'DELETE',
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+            }
+        });
+        return response.ok;
+    } catch (error) {
+        console.error('❌ Ошибка удаления:', error);
+        return false;
     }
 }
 
@@ -266,8 +282,8 @@ function renderBuyBooks() {
                 <div class="book-price">💰 ${book.price} ₽</div>
                 <div>Продавец: ${book.sellerName || book.contact}</div>
                 <button class="contact-btn" onclick="contactSeller('${book.contact?.replace('@', '') || book.seller}', '${escapeHtml(book.title).replace(/'/g, "\\'")}')">📩 Купить / Связаться</button>
-                <button class="review-btn" onclick="openReviewModal(${book.id}, '${escapeHtml(book.title).replace(/'/g, "\\'")}')">✍️ Оставить отзыв</button>
-                ${(isSeller || isAdminMode) ? `<button class="admin-delete-btn" onclick="deleteBook(${book.id})">🗑️ Удалить товар</button>` : ''}
+                <button class="review-btn" onclick="openReviewModal('${book.id}', '${escapeHtml(book.title).replace(/'/g, "\\'")}')">✍️ Оставить отзыв</button>
+                ${(isSeller || isAdminMode) ? `<button class="admin-delete-btn" onclick="deleteBook('${book.id}')">🗑️ Удалить товар</button>` : ''}
                 <div class="reviews-section">
                     <div class="reviews-title">📝 Отзывы (${bookReviews.length})</div>
                     ${renderReviews(book.id)}
@@ -295,8 +311,8 @@ function renderReviews(bookId) {
                 </div>
                 <div class="review-text">${escapeHtml(rev.text)}</div>
                 <div class="review-actions">
-                    ${isAuthor ? `<span class="review-edit" onclick="openEditReviewModal(${bookId}, ${idx})">✏️</span>` : ''}
-                    ${(isAuthor || showAdminDelete) ? `<span class="review-delete" onclick="deleteReviewConfirm(${bookId}, ${idx})">🗑️</span>` : ''}
+                    ${isAuthor ? `<span class="review-edit" onclick="openEditReviewModal('${bookId}', ${idx})">✏️</span>` : ''}
+                    ${(isAuthor || showAdminDelete) ? `<span class="review-delete" onclick="deleteReviewConfirm('${bookId}', ${idx})">🗑️</span>` : ''}
                 </div>
             </div>
         `;
@@ -342,10 +358,18 @@ window.deleteBook = async function(bookId) {
     }
     
     if (confirm(`Удалить товар "${book.title}"?`)) {
-        physicalBooks = physicalBooks.filter(b => b.id !== bookId);
-        renderBuyBooks();
-        if (isTelegram && tg?.showPopup) tg.showPopup({ title: "🗑️ Удалено", message: "Товар удалён из текущего списка", buttons: [{ type: "ok" }] });
-        else alert("Товар удалён из текущего списка");
+        const success = await deleteBookFromSupabase(bookId);
+        if (success) {
+            physicalBooks = physicalBooks.filter(b => b.id !== bookId);
+            renderBuyBooks();
+            if (isTelegram && tg?.showPopup) {
+                tg.showPopup({ title: "🗑️ Удалено", message: "Товар удалён из базы", buttons: [{ type: "ok" }] });
+            } else {
+                alert("Товар удалён");
+            }
+        } else {
+            alert("Не удалось удалить книгу");
+        }
     }
 };
 
@@ -374,7 +398,7 @@ window.closeReviewModal = function() {
 };
 
 window.submitReview = function() {
-    const bookId = parseInt(document.getElementById('modalBookId').value);
+    const bookId = document.getElementById('modalBookId').value;
     const rating = parseInt(document.getElementById('reviewRating').value);
     const text = document.getElementById('reviewText').value.trim();
     
@@ -420,7 +444,7 @@ window.closeEditReviewModal = function() {
 };
 
 window.updateReview = function() {
-    const bookId = parseInt(document.getElementById('editBookId').value);
+    const bookId = document.getElementById('editBookId').value;
     const reviewIndex = parseInt(document.getElementById('editReviewIndex').value);
     const rating = parseInt(document.getElementById('editReviewRating').value);
     const text = document.getElementById('editReviewText').value.trim();
@@ -452,7 +476,7 @@ window.deleteReviewConfirm = function(bookId, reviewIndex) {
 };
 
 window.deleteReview = function() {
-    const bookId = parseInt(document.getElementById('editBookId').value);
+    const bookId = document.getElementById('editBookId').value;
     const reviewIndex = parseInt(document.getElementById('editReviewIndex').value);
     if (confirm('Удалить этот отзыв?')) {
         reviews[bookId].splice(reviewIndex, 1);
@@ -506,12 +530,16 @@ document.getElementById('sell-form').addEventListener('submit', async (e) => {
         'Другое': 'другое'
     };
     
-    // Подготавливаем данные для Supabase (поля, которые есть в таблице)
     const bookData = {
         title: document.getElementById('title').value.trim(),
         author: document.getElementById('author').value.trim(),
+        genre: genreMap[document.getElementById('genre').value] || 'другое',
+        condition: document.getElementById('condition').value,
         price: parseFloat(document.getElementById('price').value),
-        contact: document.getElementById('contact').value.trim()
+        contact: document.getElementById('contact').value.trim(),
+        sellerName: document.getElementById('contact').value.trim(),
+        description: '',
+        created_at: new Date().toISOString()
     };
     
     if (!bookData.title || !bookData.author || isNaN(bookData.price) || !bookData.contact) {
