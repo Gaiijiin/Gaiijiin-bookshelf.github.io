@@ -79,12 +79,21 @@ async function saveBookToSupabase(bookData) {
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
                 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Prefer': 'return=representation'   // ← ВАЖНО: просим вернуть созданную запись
             },
             body: JSON.stringify(bookData)
         });
         if (response.ok) {
-            const newBook = await response.json();
+            // Пытаемся распарсить ответ (если есть)
+            let newBook;
+            const text = await response.text();
+            if (text && text.length > 0) {
+                newBook = JSON.parse(text);
+            } else {
+                // Если ответ всё же пустой, создаём объект вручную
+                newBook = { ...bookData, id: crypto.randomUUID?.() || Date.now(), created_at: new Date().toISOString() };
+            }
             return { success: true, book: newBook };
         } else {
             const error = await response.text();
