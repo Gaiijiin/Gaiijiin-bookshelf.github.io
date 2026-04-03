@@ -6,7 +6,7 @@ import uuid
 import time
 import requests
 
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from telegram import Update, WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, ContextTypes
@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-CORS(app)  # разрешаем запросы с любого источника (важно для фронтенда на GitHub Pages)
+CORS(app)  # разрешаем запросы с GitHub Pages
 
 # ----- Конфигурация -----
 TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
@@ -23,15 +23,14 @@ if not TOKEN:
     logger.error("❌ TELEGRAM_BOT_TOKEN не установлен")
     exit(1)
 
-# ВАЖНО: теперь это адрес вашего сайта на GitHub Pages
-RENDER_URL = "https://gaiijiin.github.io"   # 👈 ЗАМЕНИТЕ на свой username, если отличается
+# Адрес вашего сайта на GitHub Pages
+RENDER_URL = "https://gaiijiin.github.io/Gaiijiin-bookshelf.github.io"  # или короткий, если переименовали репозиторий
 
 GAS_URL = "https://script.google.com/macros/s/AKfycbzc6t6LGck4FxCNO8Ayggoa5LNBOSne3JBPdPW8I7z4dFpAyTZb9G6iPkLJTVGtIOCh/exec"
 
-logger.info(f"✅ Бот и API запущены на {os.environ.get('RENDER_EXTERNAL_URL', 'https://telegrambot-sbae.onrender.com')}")
-logger.info(f"🔗 Фронтенд будет доступен по адресу: {RENDER_URL}")
+logger.info(f"✅ Бот и API запущены. Фронтенд: {RENDER_URL}")
 
-# ----- Кэш и работа с GAS (как у вас уже было) -----
+# ----- Кэш и работа с GAS -----
 CACHE = {"books": [], "timestamp": 0}
 CACHE_TTL = 10
 lock = threading.Lock()
@@ -87,7 +86,7 @@ async def books_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg += f"📖 {b.get('title', '?')} — {b.get('price', '?')} ₽\n"
     await update.message.reply_text(msg)
 
-# ----- Flask API (бэкенд для фронтенда) -----
+# ----- API для фронтенда -----
 @app.route('/save_ad', methods=['POST'])
 def save_ad():
     try:
@@ -125,7 +124,7 @@ def save_ad():
 def get_ads():
     return jsonify({"books": get_books()})
 
-# ----- Запуск бота в отдельном потоке -----
+# ----- Запуск бота в фоне -----
 def run_bot():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
