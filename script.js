@@ -837,3 +837,4 @@ if (readSearchInput) {
 loadReviewsLocally();
 loadBooksFromSupabase();
 renderReadBooks();
+filterReadBooks();
