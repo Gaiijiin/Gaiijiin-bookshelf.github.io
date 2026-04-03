@@ -14,118 +14,86 @@ from telegram.ext import Application, CommandHandler, ContextTypes
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__, static_folder='static')
-CORS(app)
+app = Flask(__name__)
+CORS(app)  # разрешаем запросы с любого источника (важно для фронтенда на GitHub Pages)
 
+# ----- Конфигурация -----
 TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 if not TOKEN:
-    logger.error("❌ TELEGRAM_BOT_TOKEN не задан")
+    logger.error("❌ TELEGRAM_BOT_TOKEN не установлен")
     exit(1)
 
-RENDER_URL = os.environ.get('RENDER_EXTERNAL_URL', 'https://telegrambot-sbae.onrender.com')
+# ВАЖНО: теперь это адрес вашего сайта на GitHub Pages
+RENDER_URL = "https://gaiijiin.github.io"   # 👈 ЗАМЕНИТЕ на свой username, если отличается
+
 GAS_URL = "https://script.google.com/macros/s/AKfycbzc6t6LGck4FxCNO8Ayggoa5LNBOSne3JBPdPW8I7z4dFpAyTZb9G6iPkLJTVGtIOCh/exec"
 
+logger.info(f"✅ Бот и API запущены на {os.environ.get('RENDER_EXTERNAL_URL', 'https://telegrambot-sbae.onrender.com')}")
+logger.info(f"🔗 Фронтенд будет доступен по адресу: {RENDER_URL}")
+
+# ----- Кэш и работа с GAS (как у вас уже было) -----
 CACHE = {"books": [], "timestamp": 0}
 CACHE_TTL = 10
-
 lock = threading.Lock()
 
-# ----- DATA -----
 def get_books(force=False):
     now = time.time()
-
     if not force and now - CACHE["timestamp"] < CACHE_TTL:
         return CACHE["books"]
-
     try:
         r = requests.get(GAS_URL, timeout=10)
         if r.status_code != 200:
             return CACHE["books"]
-
         data = r.json()
         books = data.get('books', [])
-
         CACHE["books"] = books
         CACHE["timestamp"] = now
-
         return books
     except Exception as e:
-        logger.error(f"❌ Ошибка загрузки книг: {e}")
+        logger.error(f"❌ GAS get error: {e}")
         return CACHE["books"]
-
 
 def save_books(books):
     try:
         r = requests.post(GAS_URL, json={"books": books}, timeout=10)
         if r.status_code != 200:
             return False
-
         data = r.json()
-        # Успешно, если GAS вернул поле "books" или "success": true
         return 'books' in data or data.get('success') is True
     except Exception as e:
-        logger.error(f"❌ Ошибка сохранения книг: {e}")
+        logger.error(f"❌ GAS save error: {e}")
         return False
 
-
-# ----- TELEGRAM -----
+# ----- Команды Telegram -----
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message:
         return
-
-    keyboard = [[InlineKeyboardButton(
-        "📚 Открыть Bookshelf",
-        web_app=WebAppInfo(url=RENDER_URL)
-    )]]
-
+    keyboard = [[InlineKeyboardButton("📚 Открыть Bookshelf", web_app=WebAppInfo(url=RENDER_URL))]]
     await update.message.reply_text(
-        "👋 Добро пожаловать!\n\nЖми кнопку 👇",
+        "👋 Добро пожаловать!\n\n👇 Нажми на кнопку, чтобы открыть приложение",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
-
 
 async def books_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message:
         return
-
     books = get_books()
-
     if not books:
         await update.message.reply_text("📚 Книг пока нет")
         return
-
     books_sorted = sorted(books, key=lambda x: x.get('date', ''), reverse=True)
-
     msg = "📚 Последние книги:\n\n"
     for b in books_sorted[:10]:
-        msg += f"📖 {b.get('title')} — {b.get('price')} ₽\n"
-
+        msg += f"📖 {b.get('title', '?')} — {b.get('price', '?')} ₽\n"
     await update.message.reply_text(msg)
 
-
-# ----- FLASK -----
-@app.route('/')
-def index():
-    return send_from_directory('static', 'index.html')
-
-
-@app.route('/<path:path>')
-def static_files(path):
-    return send_from_directory('static', path)
-
-
-@app.route('/get_ads')
-def get_ads():
-    return jsonify({"books": get_books()})
-
-
+# ----- Flask API (бэкенд для фронтенда) -----
 @app.route('/save_ad', methods=['POST'])
 def save_ad():
     try:
         data = request.get_json()
         if not data or 'title' not in data:
             return jsonify({"error": "Invalid data"}), 400
-
         try:
             price = float(data.get('price', 0))
         except:
@@ -143,37 +111,33 @@ def save_ad():
         with lock:
             books = get_books(force=True)
             books.append(new_book)
-
             if not save_books(books):
                 return jsonify({"error": "save failed"}), 500
-
             CACHE["books"] = books
             CACHE["timestamp"] = time.time()
 
         return jsonify({"status": "ok", "book": new_book})
-
     except Exception as e:
-        logger.error(f"❌ save_ad ошибка: {e}")
+        logger.error(f"❌ save_ad error: {e}")
         return jsonify({"error": "server error"}), 500
 
+@app.route('/get_ads', methods=['GET'])
+def get_ads():
+    return jsonify({"books": get_books()})
 
-# ----- BOT -----
+# ----- Запуск бота в отдельном потоке -----
 def run_bot():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-
     bot = Application.builder().token(TOKEN).build()
     bot.add_handler(CommandHandler("start", start))
     bot.add_handler(CommandHandler("books", books_command))
-
-    logger.info("🚀 Бот запущен")
+    logger.info("🚀 Бот запущен (polling)")
     bot.run_polling(drop_pending_updates=True)
-
 
 threading.Thread(target=run_bot, daemon=True).start()
 
-
-# ----- START -----
+# ----- Запуск Flask -----
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 10000))
     app.run(host='0.0.0.0', port=port)
