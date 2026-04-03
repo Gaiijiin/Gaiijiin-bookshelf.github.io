@@ -74,6 +74,7 @@ async function loadBooksFromSupabase() {
 
 async function saveBookToSupabase(bookData) {
     try {
+        console.log('Sending data:', bookData);
         const response = await fetch(`${SUPABASE_URL}/rest/v1/books`, {
             method: 'POST',
             headers: {
@@ -83,31 +84,17 @@ async function saveBookToSupabase(bookData) {
             },
             body: JSON.stringify(bookData)
         });
+        console.log('Response status:', response.status);
+        const text = await response.text();
+        console.log('Response text:', text);
         if (response.ok) {
             return { success: true, book: bookData };
         } else {
-            const error = await response.text();
-            return { success: false, error };
+            return { success: false, error: text };
         }
     } catch (error) {
-        console.error('❌ Ошибка отправки:', error);
+        console.error('Fetch error:', error);
         return { success: false, error: error.message };
-    }
-}
-
-async function deleteBookFromSupabase(bookId) {
-    try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/books?id=eq.${bookId}`, {
-            method: 'DELETE',
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-            }
-        });
-        return response.ok;
-    } catch (error) {
-        console.error('❌ Ошибка удаления:', error);
-        return false;
     }
 }
 
