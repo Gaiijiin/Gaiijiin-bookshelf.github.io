@@ -84,7 +84,6 @@ async function saveBookToSupabase(bookData) {
             body: JSON.stringify(bookData)
         });
         if (response.ok) {
-            // После успешного сохранения не ждём тело ответа (оно может быть пустым)
             return { success: true, book: bookData };
         } else {
             const error = await response.text();
@@ -278,7 +277,6 @@ function renderBuyBooks() {
                 <div class="book-author">${escapeHtml(book.author)}</div>
                 <div class="book-date">📅 Добавлено: ${formatDate(book.created_at || book.date)}</div>
                 <div class="rating-display">${avg ? renderStars(parseFloat(avg)) + ' <span class="rating-value">' + avg + '</span>' : '⭐ Нет отзывов'}</div>
-                <div>Состояние: ${book.condition || 'хорошее'}</div>
                 <div class="book-price">💰 ${book.price} ₽</div>
                 <div>Продавец: ${book.sellerName || book.contact}</div>
                 <button class="contact-btn" onclick="contactSeller('${book.contact?.replace('@', '') || book.seller}', '${escapeHtml(book.title).replace(/'/g, "\\'")}')">📩 Купить / Связаться</button>
@@ -530,11 +528,11 @@ document.getElementById('sell-form').addEventListener('submit', async (e) => {
         'Другое': 'другое'
     };
     
+    // Убрано поле condition, так как его нет в таблице books
     const bookData = {
         title: document.getElementById('title').value.trim(),
         author: document.getElementById('author').value.trim(),
         genre: genreMap[document.getElementById('genre').value] || 'другое',
-        condition: document.getElementById('condition').value,
         price: parseFloat(document.getElementById('price').value),
         contact: document.getElementById('contact').value.trim(),
         sellerName: document.getElementById('contact').value.trim(),
