@@ -49,6 +49,7 @@ for (let i = 0; i < 60; i++) {
 
 // ========== ГЛОБАЛЬНЫЕ ДАННЫЕ ==========
 let physicalBooks = [];
+let nextBookId = 1;
 let reviews = {};
 
 // ========== ФУНКЦИИ РАБОТЫ С SUPABASE ==========
@@ -63,6 +64,7 @@ async function loadBooksFromSupabase() {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         physicalBooks = data;
+        nextBookId = Math.max(...physicalBooks.map(b => b.id), 0) + 1;
         renderBuyBooks();
         console.log('✅ Загружено книг:', physicalBooks.length);
         return true;
@@ -74,7 +76,6 @@ async function loadBooksFromSupabase() {
 
 async function saveBookToSupabase(bookData) {
     try {
-        console.log('Sending data:', bookData);
         const response = await fetch(`${SUPABASE_URL}/rest/v1/books`, {
             method: 'POST',
             headers: {
@@ -84,17 +85,32 @@ async function saveBookToSupabase(bookData) {
             },
             body: JSON.stringify(bookData)
         });
-        console.log('Response status:', response.status);
         const text = await response.text();
-        console.log('Response text:', text);
+        console.log('📡 Статус:', response.status, 'Ответ:', text);
         if (response.ok) {
             return { success: true, book: bookData };
         } else {
             return { success: false, error: text };
         }
     } catch (error) {
-        console.error('Fetch error:', error);
+        console.error('❌ Ошибка отправки:', error);
         return { success: false, error: error.message };
+    }
+}
+
+async function deleteBookFromSupabase(bookId) {
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/books?id=eq.${bookId}`, {
+            method: 'DELETE',
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+            }
+        });
+        return response.ok;
+    } catch (error) {
+        console.error('❌ Ошибка удаления:', error);
+        return false;
     }
 }
 
@@ -249,7 +265,8 @@ function renderBuyBooks() {
     container.innerHTML = filtered.map(book => {
         const avg = getAvgRating(book.id);
         const bookReviews = reviews[book.id] || [];
-        const isSeller = book.sellerName === currentUserName;
+        // sellerName заменяем на contact, так как в Supabase нет sellerName
+        const isSeller = book.contact === currentUserName;
         
         let genreEmoji = "📚";
         if (book.genre === "манга") genreEmoji = "📖";
@@ -264,9 +281,10 @@ function renderBuyBooks() {
                 <div class="book-author">${escapeHtml(book.author)}</div>
                 <div class="book-date">📅 Добавлено: ${formatDate(book.created_at || book.date)}</div>
                 <div class="rating-display">${avg ? renderStars(parseFloat(avg)) + ' <span class="rating-value">' + avg + '</span>' : '⭐ Нет отзывов'}</div>
+                <div>Состояние: ${book.condition || 'хорошее'}</div>
                 <div class="book-price">💰 ${book.price} ₽</div>
-                <div>Продавец: ${book.sellerName || book.contact}</div>
-                <button class="contact-btn" onclick="contactSeller('${book.contact?.replace('@', '') || book.seller}', '${escapeHtml(book.title).replace(/'/g, "\\'")}')">📩 Купить / Связаться</button>
+                <div>Продавец: ${book.contact}</div>
+                <button class="contact-btn" onclick="contactSeller('${book.contact?.replace('@', '') || ''}', '${escapeHtml(book.title).replace(/'/g, "\\'")}')">📩 Купить / Связаться</button>
                 <button class="review-btn" onclick="openReviewModal('${book.id}', '${escapeHtml(book.title).replace(/'/g, "\\'")}')">✍️ Оставить отзыв</button>
                 ${(isSeller || isAdminMode) ? `<button class="admin-delete-btn" onclick="deleteBook('${book.id}')">🗑️ Удалить товар</button>` : ''}
                 <div class="reviews-section">
@@ -312,6 +330,10 @@ window.readBook = function(bookId) {
 };
 
 window.contactSeller = function(username, bookTitle) {
+    if (!username) {
+        alert("Контакт продавца не указан");
+        return;
+    }
     const message = `⚠️ ЗОНА ОТВЕТСТВЕННОСТИ ПОКУПАТЕЛЯ ⚠️\n\nВы собираетесь связаться с продавцом книги "${bookTitle}".\n\n📌 Площадка ТОЛЬКО сводит покупателя и продавца.\n📌 Мы НЕ проверяем книги, НЕ храним деньги, НЕ отвечаем за сделки.\n\n🔥 Обязательно:\n• Попросите 3-4 фото книги\n• Уточните состояние\n• Не переводите деньги без проверки\n• Встречайтесь лично\n\nПерейти в Telegram?`;
     
     if (isTelegram && tg?.showPopup) {
@@ -335,7 +357,7 @@ window.deleteBook = async function(bookId) {
     if (!book) return;
     
     const currentUser = getCurrentUser();
-    const isSeller = book.sellerName === currentUser;
+    const isSeller = book.contact === currentUser;
     
     if (!isSeller && !isAdminMode) {
         alert("Вы можете удалять только свои объявления");
@@ -515,15 +537,13 @@ document.getElementById('sell-form').addEventListener('submit', async (e) => {
         'Другое': 'другое'
     };
     
-    // Убрано поле condition, так как его нет в таблице books
+    // Отправляем только те поля, которые есть в таблице books
     const bookData = {
         title: document.getElementById('title').value.trim(),
         author: document.getElementById('author').value.trim(),
         genre: genreMap[document.getElementById('genre').value] || 'другое',
         price: parseFloat(document.getElementById('price').value),
         contact: document.getElementById('contact').value.trim(),
-        sellerName: document.getElementById('contact').value.trim(),
-        description: '',
         created_at: new Date().toISOString()
     };
     
