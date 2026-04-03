@@ -660,19 +660,3 @@ body {
     }
 }
 
-/* Сетка для вкладки "Читать" – 2 колонки */
-#read-books-list {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
-}
-/* Для мобильных – 1 колонка */
-@media (max-width: 600px) {
-    #read-books-list {
-        grid-template-columns: 1fr;
-    }
-}
-/* Книги внутри сетки не должны ломаться */
-#read-books-list .book-card {
-    margin-bottom: 0;
-}
