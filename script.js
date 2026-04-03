@@ -783,6 +783,54 @@ titleH1?.addEventListener('mouseenter', (e) => {
     }
 });
 
+// ========== ПОИСК ВО ВКЛАДКЕ "ЧИТАТЬ" ==========
+const readSearchInput = document.getElementById('readSearchInput');
+const readSearchClearBtn = document.getElementById('readSearchClearBtn');
+
+function filterReadBooks() {
+    const searchTerm = readSearchInput.value.toLowerCase().trim();
+    const bookCards = document.querySelectorAll('#read-books-list .book-card');
+    let hasVisible = false;
+
+    bookCards.forEach(card => {
+        const title = card.querySelector('.book-title')?.textContent.toLowerCase() || '';
+        if (searchTerm === '' || title.includes(searchTerm)) {
+            card.style.display = '';
+            hasVisible = true;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+
+    const noResultsMsg = document.getElementById('read-no-results');
+    if (!hasVisible && searchTerm !== '') {
+        if (!noResultsMsg) {
+            const msg = document.createElement('div');
+            msg.id = 'read-no-results';
+            msg.className = 'empty';
+            msg.innerHTML = '🔍 Ничего не найдено. Попробуйте другое название.';
+            document.getElementById('read-books-list').appendChild(msg);
+        }
+    } else if (noResultsMsg) {
+        noResultsMsg.remove();
+    }
+}
+
+if (readSearchClearBtn) {
+    readSearchClearBtn.addEventListener('click', () => {
+        readSearchInput.value = '';
+        filterReadBooks();
+        readSearchClearBtn.style.display = 'none';
+    });
+}
+
+if (readSearchInput) {
+    readSearchInput.addEventListener('input', () => {
+        filterReadBooks();
+        readSearchClearBtn.style.display = readSearchInput.value ? 'block' : 'none';
+    });
+}
+
 // ========== ЗАПУСК ==========
 loadReviewsLocally();
 loadBooksFromSupabase();
