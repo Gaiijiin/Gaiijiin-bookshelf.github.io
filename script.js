@@ -6,10 +6,9 @@ if (tg) {
 }
 const isTelegram = !!tg?.initData;
 
-// ========== API URL (СЕРВЕР НА RENDER) ==========
-const API_URL = 'https://telegrambot-sbae.onrender.com';
-// Дополнительная переменная (для альтернативных функций)
-const API_BASE_URL = API_URL;
+// ========== SUPABASE (прямое подключение) ==========
+const SUPABASE_URL = 'https://tebovawnnybsglhznoha.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlYm92YXdubnlic2dsaHpub2hhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyMDY1MzcsImV4cCI6MjA5MDc4MjUzN30.aRdc6JZs0BKyDTCjGbTUZUn7X212ZATtgk8sK25E1EU';
 
 // ========== АДМИН ПО TELEGRAM ID ==========
 let isAdminMode = false;
@@ -48,17 +47,22 @@ for (let i = 0; i < 60; i++) {
     document.body.appendChild(star);
 }
 
-// ========== ЗАГРУЗКА ОБЪЯВЛЕНИЙ С СЕРВЕРА ==========
+// ========== ГЛОБАЛЬНЫЕ ДАННЫЕ ==========
 let physicalBooks = [];
-let nextBookId = 1;
 let reviews = {};
 
-async function loadBooksFromServer() {
+// ========== ФУНКЦИИ РАБОТЫ С SUPABASE ==========
+async function loadBooksFromSupabase() {
     try {
-        const response = await fetch(`${API_URL}/get_ads`);
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/books?select=*&order=created_at.desc`, {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+            }
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
-        physicalBooks = data.books || [];
-        nextBookId = Math.max(...physicalBooks.map(b => b.id), 0) + 1;
+        physicalBooks = data;
         renderBuyBooks();
         console.log('✅ Загружено книг:', physicalBooks.length);
         return true;
@@ -68,23 +72,23 @@ async function loadBooksFromServer() {
     }
 }
 
-// ========== СОХРАНЕНИЕ КНИГИ ЧЕРЕЗ СЕРВЕР ==========
-async function saveBookToServer(bookData) {
+async function saveBookToSupabase(bookData) {
     try {
-        const response = await fetch(`${API_URL}/save_ad`, {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/books`, {
             method: 'POST',
             headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(bookData)
         });
-        
-        const result = await response.json();
-        
-        if (response.ok && result.status === 'ok') {
-            return { success: true, book: result.book };
+        if (response.ok) {
+            const newBook = await response.json();
+            return { success: true, book: newBook };
         } else {
-            return { success: false, error: result.error || 'Ошибка сохранения' };
+            const error = await response.text();
+            return { success: false, error };
         }
     } catch (error) {
         console.error('❌ Ошибка отправки:', error);
@@ -338,10 +342,13 @@ window.deleteBook = async function(bookId) {
     }
     
     if (confirm(`Удалить товар "${book.title}"?`)) {
+        // Временно удаляем локально, при следующей загрузке из Supabase изменения пропадут.
+        // Для полноценного удаления нужно вызывать DELETE запрос к Supabase.
+        // Пока оставляем как было – только локальное удаление.
         physicalBooks = physicalBooks.filter(b => b.id !== bookId);
         renderBuyBooks();
-        if (isTelegram && tg?.showPopup) tg.showPopup({ title: "🗑️ Удалено", message: "Товар удалён", buttons: [{ type: "ok" }] });
-        else alert("Товар удалён");
+        if (isTelegram && tg?.showPopup) tg.showPopup({ title: "🗑️ Удалено", message: "Товар удалён из текущего списка", buttons: [{ type: "ok" }] });
+        else alert("Товар удалён из текущего списка");
     }
 };
 
@@ -489,7 +496,7 @@ document.querySelector('.glow-title')?.addEventListener('click', () => {
     }
 });
 
-// ========== ФОРМА ПРОДАЖИ (ОТПРАВКА НА СЕРВЕР) ==========
+// ========== ФОРМА ПРОДАЖИ (СОХРАНЕНИЕ В SUPABASE) ==========
 document.getElementById('sell-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -502,18 +509,17 @@ document.getElementById('sell-form').addEventListener('submit', async (e) => {
         'Другое': 'другое'
     };
     
+    // Подготавливаем данные для Supabase (поля, которые есть в таблице)
     const bookData = {
         title: document.getElementById('title').value.trim(),
         author: document.getElementById('author').value.trim(),
-        genre: genreMap[document.getElementById('genre').value] || 'другое',
-        condition: document.getElementById('condition').value,
-        price: parseInt(document.getElementById('price').value),
+        price: parseFloat(document.getElementById('price').value),
         contact: document.getElementById('contact').value.trim(),
-        sellerName: document.getElementById('contact').value.trim(),
-        description: ''
+        // Дополнительные поля, которые не входят в таблицу, пока опускаем
+        // genre, condition, sellerName можно будет добавить позже в таблицу
     };
     
-    if (!bookData.title || !bookData.author || !bookData.price || !bookData.contact) {
+    if (!bookData.title || !bookData.author || isNaN(bookData.price) || !bookData.contact) {
         alert('❌ Заполните все поля');
         return;
     }
@@ -524,10 +530,10 @@ document.getElementById('sell-form').addEventListener('submit', async (e) => {
     submitBtn.disabled = true;
     
     try {
-        const result = await saveBookToServer(bookData);
+        const result = await saveBookToSupabase(bookData);
         
         if (result.success) {
-            await loadBooksFromServer();
+            await loadBooksFromSupabase();
             renderBuyBooks();
             document.getElementById('sell-form').reset();
             const msg = "✅ Книга успешно опубликована!";
@@ -558,7 +564,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         document.getElementById(tabId).classList.add('active');
         
         if (tabId === 'buy') {
-            loadBooksFromServer();
+            loadBooksFromSupabase();
         }
     });
 });
@@ -751,96 +757,5 @@ titleH1?.addEventListener('mouseenter', (e) => {
 
 // ========== ЗАПУСК ==========
 loadReviewsLocally();
-loadBooksFromServer();
+loadBooksFromSupabase();
 renderReadBooks();
-
-// ========== АЛЬТЕРНАТИВНЫЕ УПРОЩЁННЫЕ ФУНКЦИИ (не используются по умолчанию) ==========
-// Они добавлены по вашему запросу. Если хотите переключиться на них – замените вызовы выше.
-async function loadBooksAlt() {
-    try {
-        const response = await fetch(`${API_BASE_URL}/get_ads`);
-        const data = await response.json();
-        const books = data.books || [];
-        renderBooksAlt(books);
-    } catch (error) {
-        console.error('Ошибка загрузки книг (alt):', error);
-    }
-}
-
-async function saveBookAlt(bookData) {
-    try {
-        const response = await fetch(`${API_BASE_URL}/save_ad`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(bookData)
-        });
-        const result = await response.json();
-        if (response.ok && result.status === 'ok') {
-            return { success: true, book: result.book };
-        } else {
-            return { success: false, error: result.error };
-        }
-    } catch (error) {
-        console.error('Ошибка отправки (alt):', error);
-        return { success: false, error: error.message };
-    }
-}
-
-function renderBooksAlt(books) {
-    const container = document.getElementById('buy-books-list');
-    if (!container) return;
-    if (!books.length) {
-        container.innerHTML = '<div class="empty">📭 Книг пока нет</div>';
-        return;
-    }
-    const sorted = [...books].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-    const html = sorted.slice(0, 20).map(book => `
-        <div class="book-card">
-            <div class="book-title">📖 ${escapeHtmlAlt(book.title)}</div>
-            <div class="book-author">${escapeHtmlAlt(book.author)}</div>
-            <div class="book-price">💰 ${book.price} ₽</div>
-            <div class="book-contact">📱 ${escapeHtmlAlt(book.contact)}</div>
-            <div class="book-date">📅 ${new Date(book.date).toLocaleDateString()}</div>
-        </div>
-    `).join('');
-    container.innerHTML = html;
-}
-
-function escapeHtmlAlt(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
-    });
-}
-
-// Альтернативный обработчик формы (закомментирован, чтобы не конфликтовать)
-/*
-document.getElementById('sell-form')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const title = document.getElementById('title').value.trim();
-    const author = document.getElementById('author').value.trim();
-    const price = parseFloat(document.getElementById('price').value);
-    const contact = document.getElementById('contact').value.trim();
-    if (!title || !author || isNaN(price) || !contact) {
-        alert('❌ Заполните все поля');
-        return;
-    }
-    const submitBtn = e.target.querySelector('button[type="submit"]');
-    const originalText = submitBtn.textContent;
-    submitBtn.textContent = '⏳ Публикация...';
-    submitBtn.disabled = true;
-    const result = await saveBookAlt({ title, author, price, contact });
-    if (result.success) {
-        alert('✅ Книга успешно добавлена!');
-        document.getElementById('sell-form').reset();
-        loadBooksAlt();
-    } else {
-        alert(`❌ Ошибка: ${result.error || 'попробуйте позже'}`);
-    }
-    submitBtn.textContent = originalText;
-    submitBtn.disabled = false;
-});
-*/
