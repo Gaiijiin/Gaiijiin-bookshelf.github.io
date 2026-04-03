@@ -605,6 +605,7 @@ if (readAllBtn) {
         readAllBtn.classList.add('active');
         currentReadGenre = 'all';
         renderReadBooks();
+        filterReadBooks(); 
     });
 }
 
