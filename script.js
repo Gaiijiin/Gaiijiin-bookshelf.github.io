@@ -52,39 +52,49 @@ let physicalBooks = [];
 let reviews = {};
 
 // ========== ФУНКЦИИ РАБОТЫ С SUPABASE ==========
+async function loadBooksFromSupabase() {
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/books?select=*&order=created_at.desc`, {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+            }
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        physicalBooks = data;
+        renderBuyBooks();
+        console.log('✅ Загружено книг:', physicalBooks.length);
+        return true;
+    } catch (error) {
+        console.error('❌ Ошибка загрузки книг:', error);
+        return false;
+    }
+}
+
 async function saveBookToSupabase(bookData) {
     try {
-        console.log('📤 Отправка в Supabase:', bookData);
         const response = await fetch(`${SUPABASE_URL}/rest/v1/books`, {
             method: 'POST',
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
                 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                'Content-Type': 'application/json',
-                'Prefer': 'return=representation'
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(bookData)
         });
-        console.log('📡 Статус ответа:', response.status);
-        const text = await response.text();
-        console.log('📄 Тело ответа:', text);
         if (response.ok) {
-            let newBook;
-            if (text && text.length > 0) {
-                newBook = JSON.parse(text);
-            } else {
-                newBook = { ...bookData, id: crypto.randomUUID?.() || Date.now(), created_at: new Date().toISOString() };
-            }
-            return { success: true, book: newBook };
+            // Не пытаемся читать JSON, просто возвращаем успех
+            return { success: true, book: bookData };
         } else {
-            return { success: false, error: text };
+            const error = await response.text();
+            return { success: false, error };
         }
     } catch (error) {
         console.error('❌ Ошибка отправки:', error);
         return { success: false, error: error.message };
     }
 }
-
 
 // ========== ДАННЫЕ ДЛЯ ЧТЕНИЯ (ЛОКАЛЬНЫЕ) ==========
 const ebooks = {
@@ -332,9 +342,6 @@ window.deleteBook = async function(bookId) {
     }
     
     if (confirm(`Удалить товар "${book.title}"?`)) {
-        // Временно удаляем локально, при следующей загрузке из Supabase изменения пропадут.
-        // Для полноценного удаления нужно вызывать DELETE запрос к Supabase.
-        // Пока оставляем как было – только локальное удаление.
         physicalBooks = physicalBooks.filter(b => b.id !== bookId);
         renderBuyBooks();
         if (isTelegram && tg?.showPopup) tg.showPopup({ title: "🗑️ Удалено", message: "Товар удалён из текущего списка", buttons: [{ type: "ok" }] });
@@ -504,9 +511,7 @@ document.getElementById('sell-form').addEventListener('submit', async (e) => {
         title: document.getElementById('title').value.trim(),
         author: document.getElementById('author').value.trim(),
         price: parseFloat(document.getElementById('price').value),
-        contact: document.getElementById('contact').value.trim(),
-        // Дополнительные поля, которые не входят в таблицу, пока опускаем
-        // genre, condition, sellerName можно будет добавить позже в таблицу
+        contact: document.getElementById('contact').value.trim()
     };
     
     if (!bookData.title || !bookData.author || isNaN(bookData.price) || !bookData.contact) {
