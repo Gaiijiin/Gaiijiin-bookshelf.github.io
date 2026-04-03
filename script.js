@@ -52,58 +52,39 @@ let physicalBooks = [];
 let reviews = {};
 
 // ========== ФУНКЦИИ РАБОТЫ С SUPABASE ==========
-async function loadBooksFromSupabase() {
-    try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/books?select=*&order=created_at.desc`, {
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-            }
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        physicalBooks = data;
-        renderBuyBooks();
-        console.log('✅ Загружено книг:', physicalBooks.length);
-        return true;
-    } catch (error) {
-        console.error('❌ Ошибка загрузки книг:', error);
-        return false;
-    }
-}
-
 async function saveBookToSupabase(bookData) {
     try {
+        console.log('📤 Отправка в Supabase:', bookData);
         const response = await fetch(`${SUPABASE_URL}/rest/v1/books`, {
             method: 'POST',
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
                 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
                 'Content-Type': 'application/json',
-                'Prefer': 'return=representation'   // ← ДОБАВЛЕНО
+                'Prefer': 'return=representation'
             },
             body: JSON.stringify(bookData)
         });
+        console.log('📡 Статус ответа:', response.status);
+        const text = await response.text();
+        console.log('📄 Тело ответа:', text);
         if (response.ok) {
-            // Пробуем получить ответ (может быть пустым, если сервер не вернул тело)
             let newBook;
-            const text = await response.text();
             if (text && text.length > 0) {
                 newBook = JSON.parse(text);
             } else {
-                // Если ответ пустой – создаём объект вручную
                 newBook = { ...bookData, id: crypto.randomUUID?.() || Date.now(), created_at: new Date().toISOString() };
             }
             return { success: true, book: newBook };
         } else {
-            const error = await response.text();
-            return { success: false, error };
+            return { success: false, error: text };
         }
     } catch (error) {
         console.error('❌ Ошибка отправки:', error);
         return { success: false, error: error.message };
     }
 }
+
 
 // ========== ДАННЫЕ ДЛЯ ЧТЕНИЯ (ЛОКАЛЬНЫЕ) ==========
 const ebooks = {
