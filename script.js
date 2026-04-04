@@ -434,31 +434,51 @@ window.contactSeller = function(username, bookTitle) {
     
     const tgLink = `https://t.me/${cleanUsername}`;
     
-    // В Telegram WebApp используем tg.openTelegramLink
-    if (isTelegram && tg?.openTelegramLink) {
-        // Показываем предупреждение через всплывающее окно Telegram
-        if (tg.showPopup) {
-            tg.showPopup({
-                title: "📢 Внимание",
-                message: message,
-                buttons: [
-                    { id: "back", type: "cancel", text: "❌ Назад" },
-                    { id: "go", type: "default", text: "✅ Перейти" }
-                ]
-            }, (buttonId) => {
-                if (buttonId === "go") {
-                    tg.openTelegramLink(tgLink);
-                }
-            });
-        } else {
-            // Если showPopup не поддерживается, сразу открываем ссылку
-            tg.openTelegramLink(tgLink);
+    // Функция для открытия ссылки (надёжный способ)
+    const openLink = function(url) {
+        // Способ 1: через Telegram WebApp (если доступен)
+        if (isTelegram && tg?.openTelegramLink) {
+            tg.openTelegramLink(url);
+        } 
+        // Способ 2: создаём временную ссылку и эмулируем клик (работает в WebApp)
+        else if (window.Telegram?.WebApp) {
+            const link = document.createElement('a');
+            link.href = url;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
+        // Способ 3: обычный window.open
+        else if (window.open) {
+            window.open(url, '_blank');
+        }
+        // Способ 4: последний шанс – показываем ссылку
+        else {
+            alert(`Перейдите по ссылке: ${url}`);
+        }
+    };
+    
+    // В Telegram WebApp используем popup с подтверждением
+    if (isTelegram && tg?.showPopup) {
+        tg.showPopup({
+            title: "📢 Внимание",
+            message: message,
+            buttons: [
+                { id: "back", type: "cancel", text: "❌ Назад" },
+                { id: "go", type: "default", text: "✅ Перейти" }
+            ]
+        }, (buttonId) => {
+            if (buttonId === "go") {
+                openLink(tgLink);
+            }
+        });
     } 
-    // В обычном браузере используем window.open с подтверждением
+    // В обычном браузере используем confirm и открытие ссылки
     else {
         if (confirm(message)) {
-            window.open(tgLink, '_blank');
+            openLink(tgLink);
         }
     }
 };
