@@ -425,16 +425,27 @@ window.contactSeller = function(username, bookTitle) {
     
     const tgLink = `https://t.me/${cleanUsername}`;
     
-    // Функция для безопасного открытия ссылки
+    // Полное предупреждение (как раньше)
+    const fullMessage = `⚠️ ВНИМАНИЕ! ЗОНА ОТВЕТСТВЕННОСТИ ПОКУПАТЕЛЯ ⚠️\n\n` +
+        `Вы собираетесь связаться с продавцом книги "${bookTitle}".\n\n` +
+        `📌 Площадка ТОЛЬКО сводит покупателя и продавца.\n` +
+        `📌 Мы НЕ проверяем книги, НЕ храним деньги, НЕ отвечаем за сделки.\n\n` +
+        `🔥 Обязательно:\n` +
+        `• Попросите 3-4 фото книги\n` +
+        `• Уточните состояние\n` +
+        `• Не переводите деньги без проверки\n` +
+        `• Встречайтесь лично\n\n` +
+        `Перейти в профиль продавца?`;
+    
+    // Функция для открытия ссылки
     const openTelegramLink = function(url) {
-        // Пробуем все возможные способы открытия
         if (window.Telegram?.WebApp?.openTelegramLink) {
             window.Telegram.WebApp.openTelegramLink(url);
         } else if (tg && tg.openTelegramLink) {
             tg.openTelegramLink(url);
         } else {
-            // Fallback: просто показываем ссылку
-            const msg = `Перейдите по ссылке для связи с продавцом:\n\n${url}\n\nНажмите и удерживайте, чтобы скопировать.`;
+            // Fallback: показываем ссылку
+            const msg = `Перейдите по ссылке: ${url}`;
             if (window.Telegram?.WebApp?.showPopup) {
                 window.Telegram.WebApp.showPopup({ title: "📢 Контакт продавца", message: msg, buttons: [{ type: "ok" }] });
             } else if (tg && tg.showPopup) {
@@ -445,17 +456,14 @@ window.contactSeller = function(username, bookTitle) {
         }
     };
     
-    // Короткое сообщение без лишних предупреждений (для мини-приложения)
-    const shortMessage = `Связаться с продавцом книги "${bookTitle}"?`;
-    
-    // В Telegram WebApp используем popup
+    // Показываем предупреждение
     if (typeof tg !== 'undefined' && tg && tg.showPopup) {
         tg.showPopup({
-            title: "📢 Контакт продавца",
-            message: shortMessage,
+            title: "📢 Внимание",
+            message: fullMessage,
             buttons: [
-                { id: "cancel", type: "cancel", text: "❌ Отмена" },
-                { id: "go", type: "default", text: "✅ Связаться" }
+                { id: "cancel", type: "cancel", text: "❌ Назад" },
+                { id: "go", type: "default", text: "✅ Перейти" }
             ]
         }, (buttonId) => {
             if (buttonId === "go") {
@@ -465,11 +473,11 @@ window.contactSeller = function(username, bookTitle) {
     } 
     else if (window.Telegram?.WebApp?.showPopup) {
         window.Telegram.WebApp.showPopup({
-            title: "📢 Контакт продавца",
-            message: shortMessage,
+            title: "📢 Внимание",
+            message: fullMessage,
             buttons: [
-                { id: "cancel", type: "cancel", text: "❌ Отмена" },
-                { id: "go", type: "default", text: "✅ Связаться" }
+                { id: "cancel", type: "cancel", text: "❌ Назад" },
+                { id: "go", type: "default", text: "✅ Перейти" }
             ]
         }, (buttonId) => {
             if (buttonId === "go") {
@@ -479,7 +487,7 @@ window.contactSeller = function(username, bookTitle) {
     }
     // В обычном браузере
     else {
-        if (confirm(shortMessage)) {
+        if (confirm(fullMessage)) {
             window.open(tgLink, '_blank');
         }
     }
