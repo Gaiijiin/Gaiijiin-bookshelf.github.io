@@ -326,19 +326,76 @@ function renderReviews(bookId) {
     }).join('');
 }
 // ========== ФУНКЦИИ ДЛЯ КНИГ ==========
-window.readBook = function(bookId) {
-    const msg = "📖 Функция чтения появится в следующей версии.\n\nПока вы можете скачать книгу через бота: /books";
-    if (isTelegram && tg?.showPopup) {
-        tg.showPopup({ 
-            title: "📖 Чтение", 
-            message: msg, 
-            buttons: [{ type: "ok" }] 
-        });
+
+/**
+ * Чтение книги – отправляет EPUB-файл через Telegram бота
+ * @param {string|number} bookId - ID книги
+ */
+window.readBook = async function(bookId) {
+    // 1. Ищем книгу в физических объявлениях (Supabase)
+    let book = physicalBooks.find(b => b.id == bookId);
+    
+    // 2. Если не нашли – ищем в локальной базе ebooks (вкладка "Читать")
+    if (!book) {
+        for (let genre in ebooks) {
+            book = ebooks[genre].find(b => b.id == bookId);
+            if (book) break;
+        }
+    }
+    
+    // 3. Если книга не найдена – показываем ошибку
+    if (!book) {
+        const msg = "❌ Книга не найдена";
+        if (isTelegram && tg?.showPopup) {
+            tg.showPopup({ title: "Ошибка", message: msg, buttons: [{ type: "ok" }] });
+        } else {
+            alert(msg);
+        }
+        return;
+    }
+    
+    // 4. Проверяем, есть ли ссылка на EPUB-файл
+    if (book.epub_url) {
+        // Ссылка на бота (укажи username своего бота, например "my_bookshelf_bot")
+        const BOT_USERNAME = "GaiijiinBookshelf_bot"; // ← ЗАМЕНИТЕ НА ВАШЕГО БОТА!
+        const tgLink = `https://t.me/${BOT_USERNAME}?start=read_${book.id}`;
+        
+        const msg = `📖 Книга "${book.title}" будет отправлена в бота.\n\nНажмите "Открыть", чтобы перейти в бота и получить файл.`;
+        
+        if (isTelegram && tg?.showPopup) {
+            tg.showPopup({
+                title: "📖 Чтение",
+                message: msg,
+                buttons: [
+                    { id: "cancel", type: "cancel", text: "❌ Отмена" },
+                    { id: "open", type: "default", text: "✅ Открыть бота" }
+                ]
+            }, (buttonId) => {
+                if (buttonId === "open") {
+                    tg.openTelegramLink(tgLink);
+                }
+            });
+        } else {
+            if (confirm(msg.replace(/\n/g, ' '))) {
+                window.open(tgLink, '_blank');
+            }
+        }
     } else {
-        alert(msg);
+        // 5. Если EPUB-файла нет – сообщаем, что книга временно недоступна
+        const msg = `📖 Книга "${book.title}" временно недоступна для скачивания.\nПожалуйста, попробуйте позже.`;
+        if (isTelegram && tg?.showPopup) {
+            tg.showPopup({ title: "📖 Чтение", message: msg, buttons: [{ type: "ok" }] });
+        } else {
+            alert(msg);
+        }
     }
 };
 
+/**
+ * Связь с продавцом – открывает диалог с продавцом в Telegram
+ * @param {string} username - Telegram username продавца (с @ или без)
+ * @param {string} bookTitle - название книги
+ */
 window.contactSeller = function(username, bookTitle) {
     // Очищаем username от @ и пробелов
     const cleanUsername = String(username || '').replace('@', '').trim();
@@ -386,6 +443,10 @@ window.contactSeller = function(username, bookTitle) {
     }
 };
 
+/**
+ * Удаление книги (только для продавца или админа)
+ * @param {string} bookId - ID книги
+ */
 window.deleteBook = async function(bookId) {
     const book = physicalBooks.find(b => b.id === bookId);
     if (!book) {
