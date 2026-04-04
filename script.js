@@ -406,7 +406,7 @@ window.readBook = async function(bookId) {
         }
     }
 };
-
+// ========== СВЯЗЬ С ПРОДАВЦОМ ==========
 window.contactSeller = function(username, bookTitle) {
     // Очищаем username от @ и пробелов
     const cleanUsername = String(username || '').replace('@', '').trim();
@@ -434,29 +434,45 @@ window.contactSeller = function(username, bookTitle) {
     
     const tgLink = `https://t.me/${cleanUsername}`;
     
-    if (isTelegram && tg?.showPopup) {
-        tg.showPopup({
-            title: "📢 Внимание",
-            message: message,
-            buttons: [
-                { id: "back", type: "cancel", text: "❌ Назад" },
-                { id: "go", type: "default", text: "✅ Перейти" }
-            ]
-        }, (buttonId) => {
-            if (buttonId === "go") {
-                tg.openTelegramLink(tgLink);
-            }
-        });
-    } else {
+    // В Telegram WebApp используем tg.openTelegramLink
+    if (isTelegram && tg?.openTelegramLink) {
+        // Показываем предупреждение через всплывающее окно Telegram
+        if (tg.showPopup) {
+            tg.showPopup({
+                title: "📢 Внимание",
+                message: message,
+                buttons: [
+                    { id: "back", type: "cancel", text: "❌ Назад" },
+                    { id: "go", type: "default", text: "✅ Перейти" }
+                ]
+            }, (buttonId) => {
+                if (buttonId === "go") {
+                    tg.openTelegramLink(tgLink);
+                }
+            });
+        } else {
+            // Если showPopup не поддерживается, сразу открываем ссылку
+            tg.openTelegramLink(tgLink);
+        }
+    } 
+    // В обычном браузере используем window.open с подтверждением
+    else {
         if (confirm(message)) {
             window.open(tgLink, '_blank');
         }
     }
 };
+
+// ========== УДАЛЕНИЕ КНИГИ ==========
 window.deleteBook = async function(bookId) {
     const book = physicalBooks.find(b => b.id === bookId);
     if (!book) {
-        alert("Книга не найдена");
+        const errorMsg = "❌ Книга не найдена";
+        if (isTelegram && tg?.showPopup) {
+            tg.showPopup({ title: "Ошибка", message: errorMsg, buttons: [{ type: "ok" }] });
+        } else {
+            alert(errorMsg);
+        }
         return;
     }
     
@@ -464,13 +480,33 @@ window.deleteBook = async function(bookId) {
     const isSeller = book.contact === currentUser;
     
     if (!isSeller && !isAdminMode) {
-        alert("❌ Вы можете удалять только свои объявления");
+        const errorMsg = "❌ Вы можете удалять только свои объявления";
+        if (isTelegram && tg?.showPopup) {
+            tg.showPopup({ title: "Ошибка", message: errorMsg, buttons: [{ type: "ok" }] });
+        } else {
+            alert(errorMsg);
+        }
         return;
     }
     
     const confirmMsg = `🗑️ Удалить товар "${book.title}"?\n\nЭто действие нельзя отменить.`;
     
-    if (confirm(confirmMsg)) {
+    const confirmed = isTelegram && tg?.showPopup 
+        ? await new Promise((resolve) => {
+            tg.showPopup({
+                title: "Подтверждение",
+                message: confirmMsg,
+                buttons: [
+                    { id: "cancel", type: "cancel", text: "❌ Отмена" },
+                    { id: "ok", type: "ok", text: "✅ Удалить" }
+                ]
+            }, (buttonId) => {
+                resolve(buttonId === "ok");
+            });
+        })
+        : confirm(confirmMsg);
+    
+    if (confirmed) {
         const success = await deleteBookFromSupabase(bookId);
         if (success) {
             physicalBooks = physicalBooks.filter(b => b.id !== bookId);
@@ -491,7 +527,6 @@ window.deleteBook = async function(bookId) {
         }
     }
 };
-
 // ========== ОТЗЫВЫ ==========
 function saveReviewsLocally() {
     localStorage.setItem('bookshelf_reviews', JSON.stringify(reviews));
