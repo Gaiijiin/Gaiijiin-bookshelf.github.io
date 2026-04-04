@@ -327,17 +327,44 @@ function renderReviews(bookId) {
 }
 // ========== ФУНКЦИИ ДЛЯ КНИГ ==========
 window.readBook = function(bookId) {
-    const msg = "Функция чтения появится в следующей версии";
-    if (isTelegram && tg?.showPopup) tg.showPopup({ title: "📖 Чтение", message: msg, buttons: [{ type: "ok" }] });
-    else alert(msg);
+    const msg = "📖 Функция чтения появится в следующей версии.\n\nПока вы можете скачать книгу через бота: /books";
+    if (isTelegram && tg?.showPopup) {
+        tg.showPopup({ 
+            title: "📖 Чтение", 
+            message: msg, 
+            buttons: [{ type: "ok" }] 
+        });
+    } else {
+        alert(msg);
+    }
 };
 
 window.contactSeller = function(username, bookTitle) {
-    if (!username) {
-        alert("Контакт продавца не указан");
+    // Очищаем username от @ и пробелов
+    const cleanUsername = String(username || '').replace('@', '').trim();
+    
+    if (!cleanUsername) {
+        const errorMsg = "❌ Контакт продавца не указан.\n\nПожалуйста, сообщите продавцу, чтобы он добавил свой Telegram в объявлении.";
+        if (isTelegram && tg?.showPopup) {
+            tg.showPopup({ title: "Ошибка", message: errorMsg, buttons: [{ type: "ok" }] });
+        } else {
+            alert(errorMsg);
+        }
         return;
     }
-    const message = `⚠️ ЗОНА ОТВЕТСТВЕННОСТИ ПОКУПАТЕЛЯ ⚠️\n\nВы собираетесь связаться с продавцом книги "${bookTitle}".\n\n📌 Площадка ТОЛЬКО сводит покупателя и продавца.\n📌 Мы НЕ проверяем книги, НЕ храним деньги, НЕ отвечаем за сделки.\n\n🔥 Обязательно:\n• Попросите 3-4 фото книги\n• Уточните состояние\n• Не переводите деньги без проверки\n• Встречайтесь лично\n\nПерейти в Telegram?`;
+    
+    const message = `⚠️ *ВНИМАНИЕ! ЗОНА ОТВЕТСТВЕННОСТИ ПОКУПАТЕЛЯ* ⚠️\n\n` +
+        `Вы собираетесь связаться с продавцом книги *"${bookTitle}"*.\n\n` +
+        `📌 *Площадка ТОЛЬКО сводит покупателя и продавца.*\n` +
+        `📌 Мы НЕ проверяем книги, НЕ храним деньги, НЕ отвечаем за сделки.\n\n` +
+        `🔥 *Обязательно:*\n` +
+        `• Попросите 3-4 фото книги\n` +
+        `• Уточните состояние\n` +
+        `• Не переводите деньги без проверки\n` +
+        `• Встречайтесь лично\n\n` +
+        `Перейти в профиль продавца?`;
+    
+    const tgLink = `https://t.me/${cleanUsername}`;
     
     if (isTelegram && tg?.showPopup) {
         tg.showPopup({
@@ -348,37 +375,52 @@ window.contactSeller = function(username, bookTitle) {
                 { id: "go", type: "default", text: "✅ Перейти" }
             ]
         }, (buttonId) => {
-            if (buttonId === "go") tg.openTelegramLink(`https://t.me/${username.replace('@', '')}`);
+            if (buttonId === "go") {
+                tg.openTelegramLink(tgLink);
+            }
         });
     } else {
-        if (confirm(message)) window.open(`https://t.me/${username.replace('@', '')}`, '_blank');
+        if (confirm(message.replace(/\*/g, ''))) {
+            window.open(tgLink, '_blank');
+        }
     }
 };
 
 window.deleteBook = async function(bookId) {
     const book = physicalBooks.find(b => b.id === bookId);
-    if (!book) return;
+    if (!book) {
+        alert("Книга не найдена");
+        return;
+    }
     
     const currentUser = getCurrentUser();
     const isSeller = book.contact === currentUser;
     
     if (!isSeller && !isAdminMode) {
-        alert("Вы можете удалять только свои объявления");
+        alert("❌ Вы можете удалять только свои объявления");
         return;
     }
     
-    if (confirm(`Удалить товар "${book.title}"?`)) {
+    const confirmMsg = `🗑️ Удалить товар "${book.title}"?\n\nЭто действие нельзя отменить.`;
+    
+    if (confirm(confirmMsg)) {
         const success = await deleteBookFromSupabase(bookId);
         if (success) {
             physicalBooks = physicalBooks.filter(b => b.id !== bookId);
             renderBuyBooks();
+            const successMsg = "✅ Товар успешно удалён из базы данных";
             if (isTelegram && tg?.showPopup) {
-                tg.showPopup({ title: "🗑️ Удалено", message: "Товар удалён из базы", buttons: [{ type: "ok" }] });
+                tg.showPopup({ title: "🗑️ Удалено", message: successMsg, buttons: [{ type: "ok" }] });
             } else {
-                alert("Товар удалён");
+                alert(successMsg);
             }
         } else {
-            alert("Не удалось удалить книгу");
+            const errorMsg = "❌ Не удалось удалить книгу. Попробуйте позже.";
+            if (isTelegram && tg?.showPopup) {
+                tg.showPopup({ title: "Ошибка", message: errorMsg, buttons: [{ type: "ok" }] });
+            } else {
+                alert(errorMsg);
+            }
         }
     }
 };
