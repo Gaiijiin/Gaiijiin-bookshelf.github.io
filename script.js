@@ -407,11 +407,6 @@ window.readBook = async function(bookId) {
     }
 };
 
-/**
- * Связь с продавцом – открывает диалог с продавцом в Telegram
- * @param {string} username - Telegram username продавца (с @ или без)
- * @param {string} bookTitle - название книги
- */
 window.contactSeller = function(username, bookTitle) {
     // Очищаем username от @ и пробелов
     const cleanUsername = String(username || '').replace('@', '').trim();
@@ -426,11 +421,11 @@ window.contactSeller = function(username, bookTitle) {
         return;
     }
     
-    const message = `⚠️ *ВНИМАНИЕ! ЗОНА ОТВЕТСТВЕННОСТИ ПОКУПАТЕЛЯ* ⚠️\n\n` +
-        `Вы собираетесь связаться с продавцом книги *"${bookTitle}"*.\n\n` +
-        `📌 *Площадка ТОЛЬКО сводит покупателя и продавца.*\n` +
+    const message = `⚠️ ВНИМАНИЕ! ЗОНА ОТВЕТСТВЕННОСТИ ПОКУПАТЕЛЯ ⚠️\n\n` +
+        `Вы собираетесь связаться с продавцом книги "${bookTitle}".\n\n` +
+        `📌 Площадка ТОЛЬКО сводит покупателя и продавца.\n` +
         `📌 Мы НЕ проверяем книги, НЕ храним деньги, НЕ отвечаем за сделки.\n\n` +
-        `🔥 *Обязательно:*\n` +
+        `🔥 Обязательно:\n` +
         `• Попросите 3-4 фото книги\n` +
         `• Уточните состояние\n` +
         `• Не переводите деньги без проверки\n` +
@@ -453,16 +448,11 @@ window.contactSeller = function(username, bookTitle) {
             }
         });
     } else {
-        if (confirm(message.replace(/\*/g, ''))) {
+        if (confirm(message)) {
             window.open(tgLink, '_blank');
         }
     }
 };
-
-/**
- * Удаление книги (только для продавца или админа)
- * @param {string} bookId - ID книги
- */
 window.deleteBook = async function(bookId) {
     const book = physicalBooks.find(b => b.id === bookId);
     if (!book) {
