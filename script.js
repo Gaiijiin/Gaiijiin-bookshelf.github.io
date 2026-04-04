@@ -265,7 +265,7 @@ function renderBuyBooks() {
     container.innerHTML = filtered.map(book => {
         const avg = getAvgRating(book.id);
         const bookReviews = reviews[book.id] || [];
-        // sellerName заменяем на contact, так как в Supabase нет sellerName
+        // Проверяем, является ли текущий пользователь продавцом
         const isSeller = book.contact === currentUserName;
         
         let genreEmoji = "📚";
@@ -275,6 +275,10 @@ function renderBuyBooks() {
         else if (book.genre === "классика") genreEmoji = "📜";
         else if (book.genre === "роман21") genreEmoji = "🌟";
         
+        // Безопасное экранирование для onclick
+        const safeTitle = escapeHtml(book.title).replace(/'/g, "\\'");
+        const sellerContact = book.contact ? book.contact.replace('@', '') : '';
+        
         return `
             <div class="book-card">
                 <div class="book-title">${genreEmoji} ${escapeHtml(book.title)}</div>
@@ -283,9 +287,9 @@ function renderBuyBooks() {
                 <div class="rating-display">${avg ? renderStars(parseFloat(avg)) + ' <span class="rating-value">' + avg + '</span>' : '⭐ Нет отзывов'}</div>
                 <div>Состояние: ${book.condition || 'хорошее'}</div>
                 <div class="book-price">💰 ${book.price} ₽</div>
-                <div>Продавец: ${book.contact}</div>
-                <button class="contact-btn" onclick="contactSeller('${book.contact?.replace('@', '') || ''}', '${escapeHtml(book.title).replace(/'/g, "\\'")}')">📩 Купить / Связаться</button>
-                <button class="review-btn" onclick="openReviewModal('${book.id}', '${escapeHtml(book.title).replace(/'/g, "\\'")}')">✍️ Оставить отзыв</button>
+                <div>Продавец: ${escapeHtml(book.contact) || 'Не указан'}</div>
+                <button class="contact-btn" onclick="contactSeller('${sellerContact}', '${safeTitle}')">📩 Купить / Связаться</button>
+                <button class="review-btn" onclick="openReviewModal('${book.id}', '${safeTitle}')">✍️ Оставить отзыв</button>
                 ${(isSeller || isAdminMode) ? `<button class="admin-delete-btn" onclick="deleteBook('${book.id}')">🗑️ Удалить товар</button>` : ''}
                 <div class="reviews-section">
                     <div class="reviews-title">📝 Отзывы (${bookReviews.length})</div>
@@ -321,7 +325,6 @@ function renderReviews(bookId) {
         `;
     }).join('');
 }
-
 // ========== ФУНКЦИИ ДЛЯ КНИГ ==========
 window.readBook = function(bookId) {
     const msg = "Функция чтения появится в следующей версии";
