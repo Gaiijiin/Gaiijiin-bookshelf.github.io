@@ -649,7 +649,7 @@ document.getElementById('sell-form').addEventListener('submit', async (e) => {
         'Другое': 'другое'
     };
     
-    // Отправляем только те поля, которые есть в таблице books
+    // Отправляем ТОЛЬКО поля, которые есть в таблице books
     const bookData = {
         title: document.getElementById('title').value.trim(),
         author: document.getElementById('author').value.trim(),
