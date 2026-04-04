@@ -76,6 +76,20 @@ async function loadBooksFromSupabase() {
 
 async function saveBookToSupabase(bookData) {
     try {
+        // Отправляем ТОЛЬКО поля, которые есть в таблице books
+        const cleanData = {
+            title: bookData.title,
+            author: bookData.author,
+            price: parseFloat(bookData.price),
+            contact: bookData.contact,
+            created_at: new Date().toISOString()
+        };
+        
+        // Если есть genre – добавляем
+        if (bookData.genre) cleanData.genre = bookData.genre;
+        
+        console.log('📤 Отправка в Supabase:', cleanData);
+        
         const response = await fetch(`${SUPABASE_URL}/rest/v1/books`, {
             method: 'POST',
             headers: {
@@ -83,10 +97,12 @@ async function saveBookToSupabase(bookData) {
                 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(bookData)
+            body: JSON.stringify(cleanData)
         });
+        
         const text = await response.text();
         console.log('📡 Статус:', response.status, 'Ответ:', text);
+        
         if (response.ok) {
             return { success: true, book: bookData };
         } else {
