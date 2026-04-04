@@ -357,7 +357,7 @@ window.readBook = async function(bookId) {
     // 4. Проверяем, есть ли ссылка на EPUB-файл
     if (book.epub_url) {
         // Ссылка на бота (укажи username своего бота, например "my_bookshelf_bot")
-        const BOT_USERNAME = "GaiijiinBookshelf_bot"; // ← ЗАМЕНИТЕ НА ВАШЕГО БОТА!
+        const BOT_USERNAME = "@bybookshelfbot";
         const tgLink = `https://t.me/${BOT_USERNAME}?start=read_${book.id}`;
         
         const msg = `📖 Книга "${book.title}" будет отправлена в бота.\n\nНажмите "Открыть", чтобы перейти в бота и получить файл.`;
