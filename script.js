@@ -423,7 +423,7 @@ window.contactSeller = function(username, bookTitle) {
     const tgLink = `https://t.me/${cleanUsername}`;
     
     // Короткое предупреждение (помещается в popup)
-    const shortWarning = `⚠️ ВНИМАНИЕ!\n\nПлощадка ТОЛЬКО сводит покупателя и продавца.\nМы НЕ проверяем книги, НЕ храним деньги, НЕ отвечаем за сделки.\n\nПроверьте книгу и договоритесь о встрече.\n\nПерейти к продавцу?`;
+    const shortWarning = `\n\nПлощадка ТОЛЬКО сводит покупателя и продавца.\nМы НЕ проверяем книги, НЕ храним деньги, НЕ отвечаем за сделки.\n\nПроверьте книгу и договоритесь о встрече.\n\nПерейти к продавцу?`;
     
     // Функция открытия ссылки
     const openLink = () => {
@@ -439,7 +439,7 @@ window.contactSeller = function(username, bookTitle) {
     // Показываем предупреждение
     if (window.Telegram?.WebApp?.showPopup) {
         window.Telegram.WebApp.showPopup({
-            title: "📢 Внимание",
+            title: "⚠️ ВНИМАНИЕ!",
             message: shortWarning,
             buttons: [
                 { id: "cancel", type: "cancel", text: "❌ Отмена" },
