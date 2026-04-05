@@ -408,88 +408,50 @@ window.readBook = async function(bookId) {
 };
 // ========== СВЯЗЬ С ПРОДАВЦОМ ==========
 window.contactSeller = function(username, bookTitle) {
-    // Очищаем username от @ и пробелов
     const cleanUsername = String(username || '').replace('@', '').trim();
     
     if (!cleanUsername) {
-        const errorMsg = "❌ Контакт продавца не указан.\n\nПожалуйста, сообщите продавцу, чтобы он добавил свой Telegram в объявлении.";
-        if (typeof tg !== 'undefined' && tg && tg.showPopup) {
-            tg.showPopup({ title: "Ошибка", message: errorMsg, buttons: [{ type: "ok" }] });
-        } else if (window.Telegram?.WebApp?.showPopup) {
-            window.Telegram.WebApp.showPopup({ title: "Ошибка", message: errorMsg, buttons: [{ type: "ok" }] });
+        const msg = "❌ Контакт продавца не указан";
+        if (window.Telegram?.WebApp?.showPopup) {
+            window.Telegram.WebApp.showPopup({ title: "Ошибка", message: msg, buttons: [{ type: "ok" }] });
         } else {
-            alert(errorMsg);
+            alert(msg);
         }
         return;
     }
     
     const tgLink = `https://t.me/${cleanUsername}`;
     
-    // Полное предупреждение (как раньше)
-    const fullMessage = `⚠️ ВНИМАНИЕ! ЗОНА ОТВЕТСТВЕННОСТИ ПОКУПАТЕЛЯ ⚠️\n\n` +
-        `Вы собираетесь связаться с продавцом книги "${bookTitle}".\n\n` +
-        `📌 Площадка ТОЛЬКО сводит покупателя и продавца.\n` +
-        `📌 Мы НЕ проверяем книги, НЕ храним деньги, НЕ отвечаем за сделки.\n\n` +
-        `🔥 Обязательно:\n` +
-        `• Попросите 3-4 фото книги\n` +
-        `• Уточните состояние\n` +
-        `• Не переводите деньги без проверки\n` +
-        `• Встречайтесь лично\n\n` +
-        `Перейти в профиль продавца?`;
+    // Короткое предупреждение (помещается в popup)
+    const shortWarning = `⚠️ ВНИМАНИЕ!\n\nПлощадка ТОЛЬКО сводит покупателя и продавца.\nМы НЕ проверяем книги, НЕ храним деньги, НЕ отвечаем за сделки.\n\nПроверьте книгу и договоритесь о встрече.\n\nПерейти к продавцу?`;
     
-    // Функция для открытия ссылки
-    const openTelegramLink = function(url) {
+    // Функция открытия ссылки
+    const openLink = () => {
         if (window.Telegram?.WebApp?.openTelegramLink) {
-            window.Telegram.WebApp.openTelegramLink(url);
-        } else if (tg && tg.openTelegramLink) {
-            tg.openTelegramLink(url);
+            window.Telegram.WebApp.openTelegramLink(tgLink);
+        } else if (window.tg?.openTelegramLink) {
+            window.tg.openTelegramLink(tgLink);
         } else {
-            // Fallback: показываем ссылку
-            const msg = `Перейдите по ссылке: ${url}`;
-            if (window.Telegram?.WebApp?.showPopup) {
-                window.Telegram.WebApp.showPopup({ title: "📢 Контакт продавца", message: msg, buttons: [{ type: "ok" }] });
-            } else if (tg && tg.showPopup) {
-                tg.showPopup({ title: "📢 Контакт продавца", message: msg, buttons: [{ type: "ok" }] });
-            } else {
-                alert(msg);
-            }
+            window.open(tgLink, '_blank');
         }
     };
     
     // Показываем предупреждение
-    if (typeof tg !== 'undefined' && tg && tg.showPopup) {
-        tg.showPopup({
-            title: "📢 Внимание",
-            message: fullMessage,
-            buttons: [
-                { id: "cancel", type: "cancel", text: "❌ Назад" },
-                { id: "go", type: "default", text: "✅ Перейти" }
-            ]
-        }, (buttonId) => {
-            if (buttonId === "go") {
-                openTelegramLink(tgLink);
-            }
-        });
-    } 
-    else if (window.Telegram?.WebApp?.showPopup) {
+    if (window.Telegram?.WebApp?.showPopup) {
         window.Telegram.WebApp.showPopup({
             title: "📢 Внимание",
-            message: fullMessage,
+            message: shortWarning,
             buttons: [
-                { id: "cancel", type: "cancel", text: "❌ Назад" },
+                { id: "cancel", type: "cancel", text: "❌ Отмена" },
                 { id: "go", type: "default", text: "✅ Перейти" }
             ]
         }, (buttonId) => {
-            if (buttonId === "go") {
-                openTelegramLink(tgLink);
-            }
+            if (buttonId === "go") openLink();
         });
-    }
-    // В обычном браузере
-    else {
-        if (confirm(fullMessage)) {
-            window.open(tgLink, '_blank');
-        }
+    } 
+    // Fallback для обычного браузера
+    else if (confirm(shortWarning)) {
+        openLink();
     }
 };
 // ========== УДАЛЕНИЕ КНИГИ ==========
