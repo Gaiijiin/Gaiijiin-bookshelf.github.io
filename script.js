@@ -305,54 +305,13 @@ function renderReviews(bookId) {
 
 // ========== ФУНКЦИИ ДЛЯ КНИГ ==========
 window.readBook = async function(bookId) {
-    const book = ebooks.find(b => b.id == bookId);
-    
-    if (!book) {
-        const msg = "❌ Книга не найдена";
-        if (isTelegram && tg?.showPopup) {
-            tg.showPopup({ title: "Ошибка", message: msg, buttons: [{ type: "ok" }] });
-        } else {
-            alert(msg);
-        }
-        return;
-    }
-    
-    if (book.epub_url) {
-        const BOT_USERNAME = "bybookshelfbot";
-        // Формируем команду для бота: /start read_<id>
-        const botLink = `https://t.me/${BOT_USERNAME}?start=read_${book.id}`;
-        
-        // Показываем предупреждение и открываем бота
-        const msg = `📖 Книга "${book.title}" будет отправлена в бота.\n\nНажмите "Открыть", чтобы перейти в бота и получить файл.`;
-        
-        if (isTelegram && tg?.showPopup) {
-            tg.showPopup({
-                title: "📖 Чтение",
-                message: msg,
-                buttons: [
-                    { id: "cancel", type: "cancel", text: "❌ Отмена" },
-                    { id: "open", type: "default", text: "✅ Открыть бота" }
-                ]
-            }, (buttonId) => {
-                if (buttonId === "open") {
-                    tg.openTelegramLink(botLink);
-                }
-            });
-        } else {
-            if (confirm(msg)) {
-                window.open(botLink, '_blank');
-            }
-        }
+    const msg = "📖 Книга доступна для скачивания в боте.\n\nОткройте бота и отправьте команду /read, чтобы получить список книг.";
+    if (isTelegram && tg?.showPopup) {
+        tg.showPopup({ title: "📖 Чтение", message: msg, buttons: [{ type: "ok" }] });
     } else {
-        const msg = `📖 Книга "${book.title}" временно недоступна для скачивания.`;
-        if (isTelegram && tg?.showPopup) {
-            tg.showPopup({ title: "📖 Чтение", message: msg, buttons: [{ type: "ok" }] });
-        } else {
-            alert(msg);
-        }
+        alert(msg);
     }
 };
-
 window.contactSeller = function(username, bookTitle) {
     const cleanUsername = String(username || '').replace('@', '').trim();
     
