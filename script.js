@@ -215,16 +215,63 @@ function renderReadBooks() {
         return;
     }
     
-    container.innerHTML = filtered.map(book => `
-        <div class="book-card">
-            <div class="book-title">${escapeHtml(book.title)}</div>
-            <div class="book-author">${escapeHtml(book.author)}</div>
-            <div class="book-description">${escapeHtml(book.description || '')}</div>
-            <button class="contact-btn" onclick="readBook('${book.id}')">📖 Читать онлайн</button>
-        </div>
-    `).join('');
+    // Группируем по сериям (если series есть, иначе каждая книга отдельно)
+    const groups = {};
+    filtered.forEach(book => {
+        const key = book.series || book.id;
+        if (!groups[key]) {
+            groups[key] = {
+                title: book.series || book.title,
+                author: book.author,
+                description: book.description,
+                books: []
+            };
+        }
+        if (book.series) {
+            groups[key].books.push(book);
+        } else {
+            groups[key].books = [book];
+        }
+    });
+    
+    container.innerHTML = Object.values(groups).map(group => {
+        if (group.books.length > 1) {
+            // Серия с несколькими томами – кнопка открывает подменю
+            const volumesHtml = group.books.map(book => `
+                <button class="volume-btn" onclick="readBook('${book.id}')">Том ${book.volume}</button>
+            `).join('');
+            return `
+                <div class="book-card series-card">
+                    <div class="book-title">📚 ${escapeHtml(group.title)}</div>
+                    <div class="book-author">${escapeHtml(group.author)}</div>
+                    <div class="volumes-container" style="display: none;" id="volumes-${group.title.replace(/\s/g, '')}">
+                        ${volumesHtml}
+                    </div>
+                    <button class="contact-btn" onclick="toggleVolumes('${group.title.replace(/\s/g, '')}')">📖 Выбрать том</button>
+                </div>
+            `;
+        } else {
+            // Одиночная книга
+            const book = group.books[0];
+            return `
+                <div class="book-card">
+                    <div class="book-title">📖 ${escapeHtml(book.title)}</div>
+                    <div class="book-author">${escapeHtml(book.author)}</div>
+                    <div class="book-description">${escapeHtml(book.description || '')}</div>
+                    <button class="contact-btn" onclick="readBook('${book.id}')">📖 Читать онлайн</button>
+                </div>
+            `;
+        }
+    }).join('');
 }
 
+// Функция для показа/скрытия томов
+window.toggleVolumes = function(seriesId) {
+    const container = document.getElementById(`volumes-${seriesId}`);
+    if (container) {
+        container.style.display = container.style.display === 'none' ? 'flex' : 'none';
+    }
+};
 // ========== ОТРИСОВКА КНИГ ДЛЯ ПОКУПКИ ==========
 function renderBuyBooks() {
     const container = document.getElementById('buy-books-list');
