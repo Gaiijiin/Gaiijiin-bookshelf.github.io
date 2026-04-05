@@ -6,11 +6,11 @@ if (tg) {
 }
 const isTelegram = !!tg?.initData;
 
-// ========== SUPABASE (ПРЯМОЕ ПОДКЛЮЧЕНИЕ) ==========
+// ========== SUPABASE ==========
 const SUPABASE_URL = 'https://tebovawnnybsglhznoha.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRlYm92YXdubnlic2dsaHpub2hhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyMDY1MzcsImV4cCI6MjA5MDc4MjUzN30.aRdc6JZs0BKyDTCjGbTUZUn7X212ZATtgk8sK25E1EU';
 
-// ========== АДМИН ПО TELEGRAM ID ==========
+// ========== АДМИН ==========
 let isAdminMode = false;
 const ADMIN_IDS = [798388659];
 
@@ -34,7 +34,7 @@ function typeWriter() {
 }
 typeWriter();
 
-// ========== ЗВЁЗДЫ НА ФОНЕ ==========
+// ========== ЗВЁЗДЫ ==========
 for (let i = 0; i < 60; i++) {
     const star = document.createElement('div');
     star.classList.add('star-bg');
@@ -49,7 +49,7 @@ for (let i = 0; i < 60; i++) {
 
 // ========== ГЛОБАЛЬНЫЕ ДАННЫЕ ==========
 let physicalBooks = [];
-let nextBookId = 1;
+let ebooks = [];
 let reviews = {};
 
 // ========== ФУНКЦИИ РАБОТЫ С SUPABASE ==========
@@ -64,19 +64,36 @@ async function loadBooksFromSupabase() {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         physicalBooks = data;
-        nextBookId = Math.max(...physicalBooks.map(b => b.id), 0) + 1;
         renderBuyBooks();
-        console.log('✅ Загружено книг:', physicalBooks.length);
+        console.log('✅ Загружено книг для продажи:', physicalBooks.length);
         return true;
     } catch (error) {
-        console.error('❌ Ошибка загрузки книг:', error);
+        console.error('❌ Ошибка загрузки книг для продажи:', error);
+        return false;
+    }
+}
+
+async function loadEbooksFromSupabase() {
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/ebooks?select=*&order=created_at.desc`, {
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+            }
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        ebooks = await response.json();
+        renderReadBooks();
+        console.log('✅ Загружено книг для чтения:', ebooks.length);
+        return true;
+    } catch (error) {
+        console.error('❌ Ошибка загрузки книг для чтения:', error);
         return false;
     }
 }
 
 async function saveBookToSupabase(bookData) {
     try {
-        // Отправляем ТОЛЬКО поля, которые есть в таблице books
         const cleanData = {
             title: bookData.title,
             author: bookData.author,
@@ -85,7 +102,6 @@ async function saveBookToSupabase(bookData) {
             created_at: new Date().toISOString()
         };
         
-        // Если есть genre – добавляем
         if (bookData.genre) cleanData.genre = bookData.genre;
         
         console.log('📤 Отправка в Supabase:', cleanData);
@@ -130,61 +146,7 @@ async function deleteBookFromSupabase(bookId) {
     }
 }
 
-// ========== ДАННЫЕ ДЛЯ ЧТЕНИЯ (ЛОКАЛЬНЫЕ) ==========
-const ebooks = {
-    manga: [
-        { id: 1, title: "Берсерк. Том 1", author: "Кэнтаро Миура", description: "Тёмное фэнтези" },
-        { id: 2, title: "Ван-Пис. Том 1", author: "Эйитиро Ода", description: "Приключения" }
-    ],
-    ranobe: [
-        { id: 3, title: "Магическая битва", author: "Гэгэ Акутами", description: "Битвы магов" }
-    ],
-    comics: [
-        { id: 4, title: "Человек-паук", author: "Marvel", description: "Паучий мир" }
-    ],
-    classic: [
-        { id: 8, title: "Преступление и наказание", author: "Фёдор Достоевский", description: "Роман о морали и искуплении" },
-        { id: 9, title: "1984", author: "Джордж Оруэлл", description: "Антиутопия" },
-        { id: 10, title: "Анна Каренина", author: "Лев Толстой", description: "Трагическая история любви" }
-    ],
-    modern: [
-        { id: 11, title: "Щегол", author: "Донна Тартт", description: "Пулитцеровская премия" },
-        { id: 12, title: "Маленькая жизнь", author: "Ханья Янагихара", description: "Современная классика" }
-    ],
-    fantasy: [
-        { id: 20, title: "Властелин колец", author: "Дж. Р. Р. Толкин", description: "Эпическое фэнтези" },
-        { id: 21, title: "Игра престолов", author: "Джордж Мартин", description: "Политическое фэнтези" }
-    ],
-    thriller: [
-        { id: 22, title: "Молчание ягнят", author: "Томас Харрис", description: "Психологический триллер" },
-        { id: 23, title: "Девушка с татуировкой дракона", author: "Стиг Ларссон", description: "Детективный триллер" }
-    ],
-    dark: [
-        { id: 24, title: "Мизери", author: "Стивен Кинг", description: "Психологический хоррор" },
-        { id: 25, title: "Американский психопат", author: "Брет Истон Эллис", description: "Тёмная сатира" }
-    ],
-    detective: [
-        { id: 26, title: "Убийство в Восточном экспрессе", author: "Агата Кристи", description: "Классический детектив" },
-        { id: 27, title: "Шерлок Холмс", author: "Артур Конан Дойл", description: "Знаменитый сыщик" }
-    ],
-    horror: [
-        { id: 28, title: "Оно", author: "Стивен Кинг", description: "Классика ужасов" },
-        { id: 29, title: "Зов Ктулху", author: "Говард Лавкрафт", description: "Мистический ужас" }
-    ],
-    romance: [
-        { id: 30, title: "Гордость и предубеждение", author: "Джейн Остин", description: "Классический роман" },
-        { id: 31, title: "Дневник памяти", author: "Николас Спаркс", description: "Современная романтика" }
-    ],
-    "sci-fi": [
-        { id: 32, title: "Дюна", author: "Фрэнк Герберт", description: "Эпическая научная фантастика" },
-        { id: 33, title: "Автостопом по галактике", author: "Дуглас Адамс", description: "Юмористическая фантастика" }
-    ],
-    adventure: [
-        { id: 34, title: "Остров сокровищ", author: "Роберт Стивенсон", description: "Пиратские приключения" },
-        { id: 35, title: "Вокруг света за 80 дней", author: "Жюль Верн", description: "Приключенческий роман" }
-    ]
-};
-
+// ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
 let currentUser = null;
 let currentReadGenre = "all";
 let currentBuyGenre = "all";
@@ -237,32 +199,33 @@ function getAvgRating(bookId) {
 // ========== ОТРИСОВКА КНИГ ДЛЯ ЧТЕНИЯ ==========
 function renderReadBooks() {
     const container = document.getElementById('read-books-list');
-    let books = [];
     
-    if (currentReadGenre === 'all') {
-        for (let genre in ebooks) {
-            books = books.concat(ebooks[genre]);
-        }
-    } else {
-        books = ebooks[currentReadGenre] || [];
-    }
-    
-    if (!books.length) {
+    if (!ebooks || ebooks.length === 0) {
         container.innerHTML = '<div class="empty">📭 Книг пока нет</div>';
         return;
     }
     
-    container.innerHTML = books.map(book => `
+    let filtered = ebooks;
+    if (currentReadGenre !== 'all') {
+        filtered = ebooks.filter(b => b.genre === currentReadGenre);
+    }
+    
+    if (!filtered.length) {
+        container.innerHTML = '<div class="empty">📭 Книг пока нет</div>';
+        return;
+    }
+    
+    container.innerHTML = filtered.map(book => `
         <div class="book-card">
             <div class="book-title">${escapeHtml(book.title)}</div>
             <div class="book-author">${escapeHtml(book.author)}</div>
-            <div style="opacity:0.7">${escapeHtml(book.description)}</div>
-            <button class="contact-btn" onclick="readBook(${book.id})">📖 Читать онлайн</button>
+            <div class="book-description">${escapeHtml(book.description || '')}</div>
+            <button class="contact-btn" onclick="readBook('${book.id}')">📖 Читать онлайн</button>
         </div>
     `).join('');
 }
 
-// ========== ОТРИСОВКА ОБЪЯВЛЕНИЙ ДЛЯ ПОКУПКИ ==========
+// ========== ОТРИСОВКА КНИГ ДЛЯ ПОКУПКИ ==========
 function renderBuyBooks() {
     const container = document.getElementById('buy-books-list');
     let filtered = physicalBooks;
@@ -281,7 +244,6 @@ function renderBuyBooks() {
     container.innerHTML = filtered.map(book => {
         const avg = getAvgRating(book.id);
         const bookReviews = reviews[book.id] || [];
-        // Проверяем, является ли текущий пользователь продавцом
         const isSeller = book.contact === currentUserName;
         
         let genreEmoji = "📚";
@@ -291,7 +253,6 @@ function renderBuyBooks() {
         else if (book.genre === "классика") genreEmoji = "📜";
         else if (book.genre === "роман21") genreEmoji = "🌟";
         
-        // Безопасное экранирование для onclick
         const safeTitle = escapeHtml(book.title).replace(/'/g, "\\'");
         const sellerContact = book.contact ? book.contact.replace('@', '') : '';
         
@@ -341,25 +302,11 @@ function renderReviews(bookId) {
         `;
     }).join('');
 }
-// ========== ФУНКЦИИ ДЛЯ КНИГ ==========
 
-/**
- * Чтение книги – отправляет EPUB-файл через Telegram бота
- * @param {string|number} bookId - ID книги
- */
+// ========== ФУНКЦИИ ДЛЯ КНИГ ==========
 window.readBook = async function(bookId) {
-    // 1. Ищем книгу в физических объявлениях (Supabase)
-    let book = physicalBooks.find(b => b.id == bookId);
+    const book = ebooks.find(b => b.id == bookId);
     
-    // 2. Если не нашли – ищем в локальной базе ebooks (вкладка "Читать")
-    if (!book) {
-        for (let genre in ebooks) {
-            book = ebooks[genre].find(b => b.id == bookId);
-            if (book) break;
-        }
-    }
-    
-    // 3. Если книга не найдена – показываем ошибку
     if (!book) {
         const msg = "❌ Книга не найдена";
         if (isTelegram && tg?.showPopup) {
@@ -370,13 +317,11 @@ window.readBook = async function(bookId) {
         return;
     }
     
-    // 4. Проверяем, есть ли ссылка на EPUB-файл
     if (book.epub_url) {
-        // Ссылка на бота (укажи username своего бота, например "my_bookshelf_bot")
         const BOT_USERNAME = "bybookshelfbot";
-        const tgLink = `https://t.me/${BOT_USERNAME}?start=read_${book.id}`;
+        const botLink = `https://t.me/${BOT_USERNAME}?start=read_${book.id}`;
         
-        const msg = `📖 Книга "${book.title}" будет отправлена в бота.\n\nНажмите "Открыть", чтобы перейти в бота и получить файл.`;
+        const msg = `📖 Книга "${book.title}" будет отправлена в бота.\n\nНажмите "Открыть", чтобы получить файл.`;
         
         if (isTelegram && tg?.showPopup) {
             tg.showPopup({
@@ -384,21 +329,20 @@ window.readBook = async function(bookId) {
                 message: msg,
                 buttons: [
                     { id: "cancel", type: "cancel", text: "❌ Отмена" },
-                    { id: "open", type: "default", text: "✅ Открыть бота" }
+                    { id: "open", type: "default", text: "✅ Открыть" }
                 ]
             }, (buttonId) => {
                 if (buttonId === "open") {
-                    tg.openTelegramLink(tgLink);
+                    tg.openTelegramLink(botLink);
                 }
             });
         } else {
-            if (confirm(msg.replace(/\n/g, ' '))) {
-                window.open(tgLink, '_blank');
+            if (confirm(msg)) {
+                window.open(botLink, '_blank');
             }
         }
     } else {
-        // 5. Если EPUB-файла нет – сообщаем, что книга временно недоступна
-        const msg = `📖 Книга "${book.title}" временно недоступна для скачивания.\nПожалуйста, попробуйте позже.`;
+        const msg = `📖 Книга "${book.title}" временно недоступна для скачивания.`;
         if (isTelegram && tg?.showPopup) {
             tg.showPopup({ title: "📖 Чтение", message: msg, buttons: [{ type: "ok" }] });
         } else {
@@ -406,7 +350,7 @@ window.readBook = async function(bookId) {
         }
     }
 };
-// ========== СВЯЗЬ С ПРОДАВЦОМ ==========
+
 window.contactSeller = function(username, bookTitle) {
     const cleanUsername = String(username || '').replace('@', '').trim();
     
@@ -421,26 +365,20 @@ window.contactSeller = function(username, bookTitle) {
     }
     
     const tgLink = `https://t.me/${cleanUsername}`;
+    const warning = `⚠️ ВНИМАНИЕ!\n\nПлощадка ТОЛЬКО сводит покупателя и продавца.\nМы НЕ храним деньги, НЕ отвечаем за сделки.\n\nПерейти к продавцу?`;
     
-    // Короткое предупреждение (помещается в popup)
-    const shortWarning = `\n\nПлощадка ТОЛЬКО сводит покупателя и продавца.\nМы НЕ храним деньги, НЕ отвечаем за сделки.\n\nПерейти к продавцу?`;
-    
-    // Функция открытия ссылки
     const openLink = () => {
         if (window.Telegram?.WebApp?.openTelegramLink) {
             window.Telegram.WebApp.openTelegramLink(tgLink);
-        } else if (window.tg?.openTelegramLink) {
-            window.tg.openTelegramLink(tgLink);
         } else {
             window.open(tgLink, '_blank');
         }
     };
     
-    // Показываем предупреждение
     if (window.Telegram?.WebApp?.showPopup) {
         window.Telegram.WebApp.showPopup({
             title: "⚠️ ВНИМАНИЕ",
-            message: shortWarning,
+            message: warning,
             buttons: [
                 { id: "cancel", type: "cancel", text: "❌ Отмена" },
                 { id: "go", type: "default", text: "✅ Перейти" }
@@ -448,12 +386,38 @@ window.contactSeller = function(username, bookTitle) {
         }, (buttonId) => {
             if (buttonId === "go") openLink();
         });
-    } 
-    // Fallback для обычного браузера
-    else if (confirm(shortWarning)) {
+    } else if (confirm(warning)) {
         openLink();
     }
 };
+
+window.deleteBook = async function(bookId) {
+    const book = physicalBooks.find(b => b.id === bookId);
+    if (!book) {
+        alert("Книга не найдена");
+        return;
+    }
+    
+    const currentUser = getCurrentUser();
+    const isSeller = book.contact === currentUser;
+    
+    if (!isSeller && !isAdminMode) {
+        alert("❌ Вы можете удалять только свои объявления");
+        return;
+    }
+    
+    if (confirm(`🗑️ Удалить товар "${book.title}"?`)) {
+        const success = await deleteBookFromSupabase(bookId);
+        if (success) {
+            physicalBooks = physicalBooks.filter(b => b.id !== bookId);
+            renderBuyBooks();
+            alert("✅ Товар удалён");
+        } else {
+            alert("❌ Не удалось удалить");
+        }
+    }
+};
+
 // ========== ОТЗЫВЫ ==========
 function saveReviewsLocally() {
     localStorage.setItem('bookshelf_reviews', JSON.stringify(reviews));
@@ -495,9 +459,7 @@ window.submitReview = function() {
     saveReviewsLocally();
     renderBuyBooks();
     closeReviewModal();
-    
-    if (isTelegram && tg?.showPopup) tg.showPopup({ title: "✅ Спасибо!", message: "Отзыв опубликован", buttons: [{ type: "ok" }] });
-    else alert("Спасибо за отзыв!");
+    alert("Спасибо за отзыв!");
 };
 
 window.openEditReviewModal = function(bookId, reviewIndex) {
@@ -540,9 +502,7 @@ window.updateReview = function() {
     saveReviewsLocally();
     renderBuyBooks();
     closeEditReviewModal();
-    
-    if (isTelegram && tg?.showPopup) tg.showPopup({ title: "✅ Обновлено!", message: "Отзыв изменён", buttons: [{ type: "ok" }] });
-    else alert("Отзыв обновлён");
+    alert("Отзыв обновлён");
 };
 
 window.deleteReviewConfirm = function(bookId, reviewIndex) {
@@ -551,8 +511,7 @@ window.deleteReviewConfirm = function(bookId, reviewIndex) {
         if (reviews[bookId].length === 0) delete reviews[bookId];
         saveReviewsLocally();
         renderBuyBooks();
-        if (isTelegram && tg?.showPopup) tg.showPopup({ title: "🗑️ Удалено", message: "Отзыв удалён", buttons: [{ type: "ok" }] });
-        else alert("Отзыв удалён");
+        alert("Отзыв удалён");
     }
 };
 
@@ -565,12 +524,11 @@ window.deleteReview = function() {
         saveReviewsLocally();
         renderBuyBooks();
         closeEditReviewModal();
-        if (isTelegram && tg?.showPopup) tg.showPopup({ title: "🗑️ Удалено", message: "Отзыв удалён", buttons: [{ type: "ok" }] });
-        else alert("Отзыв удалён");
+        alert("Отзыв удалён");
     }
 };
 
-// ========== АКТИВАЦИЯ АДМИН-РЕЖИМА ==========
+// ========== АДМИН-РЕЖИМ ==========
 let adminClickCount = 0;
 let adminClickTimer = null;
 document.querySelector('.glow-title')?.addEventListener('click', () => {
@@ -583,22 +541,18 @@ document.querySelector('.glow-title')?.addEventListener('click', () => {
             isAdminMode = true;
             renderBuyBooks();
             if (isTelegram && tg?.showPopup) {
-                tg.showPopup({ title: "🔓 Админ-режим", message: "Активирован. Вы видите кнопки удаления.", buttons: [{ type: "ok" }] });
+                tg.showPopup({ title: "🔓 Админ-режим", message: "Активирован", buttons: [{ type: "ok" }] });
             } else {
                 alert("🔓 Админ-режим активирован!");
             }
         } else {
-            if (isTelegram && tg?.showPopup) {
-                tg.showPopup({ title: "❌ Доступ запрещён", message: "У вас нет прав администратора", buttons: [{ type: "ok" }] });
-            } else {
-                alert("❌ У вас нет прав администратора. Откройте приложение в Telegram.");
-            }
+            alert("❌ У вас нет прав администратора");
         }
         adminClickCount = 0;
     }
 });
 
-// ========== ФОРМА ПРОДАЖИ (СОХРАНЕНИЕ В SUPABASE) ==========
+// ========== ФОРМА ПРОДАЖИ ==========
 document.getElementById('sell-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     
@@ -611,7 +565,6 @@ document.getElementById('sell-form').addEventListener('submit', async (e) => {
         'Другое': 'другое'
     };
     
-    // Отправляем ТОЛЬКО поля, которые есть в таблице books
     const bookData = {
         title: document.getElementById('title').value.trim(),
         author: document.getElementById('author').value.trim(),
@@ -638,18 +591,13 @@ document.getElementById('sell-form').addEventListener('submit', async (e) => {
             await loadBooksFromSupabase();
             renderBuyBooks();
             document.getElementById('sell-form').reset();
-            const msg = "✅ Книга успешно опубликована!";
-            if (isTelegram && tg?.showPopup) {
-                tg.showPopup({ title: "Готово!", message: msg, buttons: [{ type: "ok" }] });
-            } else {
-                alert(msg);
-            }
+            alert("✅ Книга успешно опубликована!");
         } else {
             throw new Error(result.error || 'Ошибка сохранения');
         }
     } catch (error) {
-        console.error('❌ Ошибка публикации:', error);
-        alert(`❌ Ошибка публикации: ${error.message}\nПопробуйте позже.`);
+        console.error('❌ Ошибка:', error);
+        alert(`❌ Ошибка: ${error.message}`);
     } finally {
         submitBtn.textContent = originalText;
         submitBtn.disabled = false;
@@ -679,7 +627,7 @@ if (readAllBtn) {
         readAllBtn.classList.add('active');
         currentReadGenre = 'all';
         renderReadBooks();
-        filterReadBooks(); 
+        filterReadBooks();
     });
 }
 
@@ -809,7 +757,7 @@ function filterBooksBySearch() {
             const msg = document.createElement('div');
             msg.id = 'no-search-results';
             msg.className = 'empty';
-            msg.innerHTML = '🔍 Ничего не найдено. Попробуйте другое название.';
+            msg.innerHTML = '🔍 Ничего не найдено';
             document.getElementById('buy-books-list').appendChild(msg);
         }
     } else if (noResultsMsg) {
@@ -829,6 +777,54 @@ if (searchInput) {
     searchInput.addEventListener('input', () => {
         filterBooksBySearch();
         searchClearBtn.style.display = searchInput.value ? 'block' : 'none';
+    });
+}
+
+// ========== ПОИСК ВО ВКЛАДКЕ ЧИТАТЬ ==========
+const readSearchInput = document.getElementById('readSearchInput');
+const readSearchClearBtn = document.getElementById('readSearchClearBtn');
+
+function filterReadBooks() {
+    const searchTerm = readSearchInput.value.toLowerCase().trim();
+    const bookCards = document.querySelectorAll('#read-books-list .book-card');
+    let hasVisible = false;
+
+    bookCards.forEach(card => {
+        const title = card.querySelector('.book-title')?.textContent.toLowerCase() || '';
+        if (searchTerm === '' || title.includes(searchTerm)) {
+            card.style.display = '';
+            hasVisible = true;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+
+    const noResultsMsg = document.getElementById('read-no-results');
+    if (!hasVisible && searchTerm !== '') {
+        if (!noResultsMsg) {
+            const msg = document.createElement('div');
+            msg.id = 'read-no-results';
+            msg.className = 'empty';
+            msg.innerHTML = '🔍 Ничего не найдено';
+            document.getElementById('read-books-list').appendChild(msg);
+        }
+    } else if (noResultsMsg) {
+        noResultsMsg.remove();
+    }
+}
+
+if (readSearchClearBtn) {
+    readSearchClearBtn.addEventListener('click', () => {
+        readSearchInput.value = '';
+        filterReadBooks();
+        readSearchClearBtn.style.display = 'none';
+    });
+}
+
+if (readSearchInput) {
+    readSearchInput.addEventListener('input', () => {
+        filterReadBooks();
+        readSearchClearBtn.style.display = readSearchInput.value ? 'block' : 'none';
     });
 }
 
@@ -859,56 +855,7 @@ titleH1?.addEventListener('mouseenter', (e) => {
     }
 });
 
-// ========== ПОИСК ВО ВКЛАДКЕ "ЧИТАТЬ" ==========
-const readSearchInput = document.getElementById('readSearchInput');
-const readSearchClearBtn = document.getElementById('readSearchClearBtn');
-
-function filterReadBooks() {
-    const searchTerm = readSearchInput.value.toLowerCase().trim();
-    const bookCards = document.querySelectorAll('#read-books-list .book-card');
-    let hasVisible = false;
-
-    bookCards.forEach(card => {
-        const title = card.querySelector('.book-title')?.textContent.toLowerCase() || '';
-        if (searchTerm === '' || title.includes(searchTerm)) {
-            card.style.display = '';
-            hasVisible = true;
-        } else {
-            card.style.display = 'none';
-        }
-    });
-
-    const noResultsMsg = document.getElementById('read-no-results');
-    if (!hasVisible && searchTerm !== '') {
-        if (!noResultsMsg) {
-            const msg = document.createElement('div');
-            msg.id = 'read-no-results';
-            msg.className = 'empty';
-            msg.innerHTML = '🔍 Ничего не найдено. Попробуйте другое название.';
-            document.getElementById('read-books-list').appendChild(msg);
-        }
-    } else if (noResultsMsg) {
-        noResultsMsg.remove();
-    }
-}
-
-if (readSearchClearBtn) {
-    readSearchClearBtn.addEventListener('click', () => {
-        readSearchInput.value = '';
-        filterReadBooks();
-        readSearchClearBtn.style.display = 'none';
-    });
-}
-
-if (readSearchInput) {
-    readSearchInput.addEventListener('input', () => {
-        filterReadBooks();
-        readSearchClearBtn.style.display = readSearchInput.value ? 'block' : 'none';
-    });
-}
-
 // ========== ЗАПУСК ==========
 loadReviewsLocally();
 loadBooksFromSupabase();
-renderReadBooks();
-filterReadBooks();
+loadEbooksFromSupabase();
