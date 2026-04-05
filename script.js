@@ -367,7 +367,7 @@ window.contactSeller = function(username, bookTitle) {
     }
     
     const tgLink = `https://t.me/${cleanUsername}`;
-    const warning = `⚠️ ВНИМАНИЕ!\n\nПлощадка ТОЛЬКО сводит покупателя и продавца.\nМы НЕ храним деньги, НЕ отвечаем за сделки.\n\nПерейти к продавцу?`;
+    const warning = `\n\nПлощадка ТОЛЬКО сводит покупателя и продавца.\nМы НЕ храним деньги, НЕ отвечаем за сделки.\n\nПерейти к продавцу?`;
     
     const openLink = () => {
         if (window.Telegram?.WebApp?.openTelegramLink) {
