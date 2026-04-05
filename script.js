@@ -910,5 +910,6 @@ if (readSearchInput) {
 // ========== ЗАПУСК ==========
 loadReviewsLocally();
 loadBooksFromSupabase();
+loadEbooksFromSupabase();
 renderReadBooks();
 filterReadBooks();
