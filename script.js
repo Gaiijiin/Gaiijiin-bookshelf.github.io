@@ -920,27 +920,7 @@ if (readSearchInput) {
         readSearchClearBtn.style.display = readSearchInput.value ? 'block' : 'none';
     });
 }
-// ========== ЗАГРУЗКА КНИГ ДЛЯ ЧТЕНИЯ ИЗ SUPABASE ==========
-let ebooks = [];
 
-async function loadEbooksFromSupabase() {
-    try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/ebooks?select=*&order=created_at.desc`, {
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-            }
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        ebooks = await response.json();
-        renderReadBooks();
-        console.log('✅ Загружено книг для чтения:', ebooks.length);
-        return true;
-    } catch (error) {
-        console.error('❌ Ошибка загрузки книг для чтения:', error);
-        return false;
-    }
-}
 // ========== ЗАПУСК ==========
 loadReviewsLocally();
 loadBooksFromSupabase();  
