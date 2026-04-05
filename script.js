@@ -237,20 +237,6 @@ function getAvgRating(bookId) {
 // ========== ОТРИСОВКА КНИГ ДЛЯ ЧТЕНИЯ ==========
 function renderReadBooks() {
     const container = document.getElementById('read-books-list');
-    
-    // Если ebooks пустой – показываем сообщение
-    if (!ebooks || ebooks.length === 0) {
-        container.innerHTML = '<div class="empty">📭 Книг пока нет</div>';
-        return;
-    }
-    
-    let filtered = ebooks;
-    if (currentReadGenre !== 'all') {
-        filtered = ebooks.filter(b => b.genre === currentReadGenre);
-    }
-}
-function renderReadBooks() {
-    const container = document.getElementById('read-books-list');
     let books = [];
     
     if (currentReadGenre === 'all') {
@@ -923,5 +909,6 @@ if (readSearchInput) {
 
 // ========== ЗАПУСК ==========
 loadReviewsLocally();
-loadBooksFromSupabase();  
-loadEbooksFromSupabase(); 
+loadBooksFromSupabase();
+renderReadBooks();
+filterReadBooks();
