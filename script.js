@@ -306,15 +306,33 @@ function renderReviews(bookId) {
 // ========== ФУНКЦИИ ДЛЯ КНИГ ==========
 window.readBook = async function(bookId) {
     const book = ebooks.find(b => b.id == bookId);
+    
     if (!book) {
-        alert("Книга не найдена");
+        const msg = "❌ Книга не найдена";
+        if (isTelegram && tg?.showPopup) {
+            tg.showPopup({ title: "Ошибка", message: msg, buttons: [{ type: "ok" }] });
+        } else {
+            alert(msg);
+        }
         return;
     }
-    const botLink = `https://t.me/bybookshelfbot?start=read_${book.id}`;
-    if (isTelegram && tg?.openTelegramLink) {
-        tg.openTelegramLink(botLink);
+    
+    if (book.epub_url) {
+        // Открываем ссылку на файл напрямую
+        if (isTelegram && tg?.openLink) {
+            tg.openLink(book.epub_url);
+        } else if (isTelegram && tg?.openTelegramLink) {
+            tg.openTelegramLink(book.epub_url);
+        } else {
+            window.open(book.epub_url, '_blank');
+        }
     } else {
-        window.open(botLink, '_blank');
+        const msg = `📖 Книга "${book.title}" временно недоступна.`;
+        if (isTelegram && tg?.showPopup) {
+            tg.showPopup({ title: "📖 Чтение", message: msg, buttons: [{ type: "ok" }] });
+        } else {
+            alert(msg);
+        }
     }
 };
 window.contactSeller = function(username, bookTitle) {
