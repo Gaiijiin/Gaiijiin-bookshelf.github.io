@@ -75,7 +75,7 @@ async function loadBooksFromSupabase() {
 
 async function loadEbooksFromSupabase() {
     try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/ebooks?select=*&order=created_at.desc`, {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/ebooks?select=*&order=volume.asc,nullslast&order=created_at.desc`, {
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
                 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
