@@ -305,11 +305,16 @@ function renderReviews(bookId) {
 
 // ========== ФУНКЦИИ ДЛЯ КНИГ ==========
 window.readBook = async function(bookId) {
-    const msg = "📖 Книга доступна для скачивания в боте.\n\nОткройте бота и отправьте команду /read, чтобы получить список книг.";
-    if (isTelegram && tg?.showPopup) {
-        tg.showPopup({ title: "📖 Чтение", message: msg, buttons: [{ type: "ok" }] });
+    const book = ebooks.find(b => b.id == bookId);
+    if (!book) {
+        alert("Книга не найдена");
+        return;
+    }
+    const botLink = `https://t.me/bybookshelfbot?start=read_${book.id}`;
+    if (isTelegram && tg?.openTelegramLink) {
+        tg.openTelegramLink(botLink);
     } else {
-        alert(msg);
+        window.open(botLink, '_blank');
     }
 };
 window.contactSeller = function(username, bookTitle) {
