@@ -439,7 +439,7 @@ window.contactSeller = function(username, bookTitle) {
     // Показываем предупреждение
     if (window.Telegram?.WebApp?.showPopup) {
         window.Telegram.WebApp.showPopup({
-            title: "⚠️ ВНИМАНИЕ!",
+            title: "⚠️ ВНИМАНИЕ",
             message: shortWarning,
             buttons: [
                 { id: "cancel", type: "cancel", text: "❌ Отмена" },
