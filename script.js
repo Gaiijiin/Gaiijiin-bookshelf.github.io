@@ -318,10 +318,9 @@ window.readBook = async function(bookId) {
     }
     
     if (book.epub_url) {
-        const BOT_USERNAME = "bybookshelfbot";
-        const botLink = `https://t.me/${BOT_USERNAME}?start=read_${book.id}`;
-        
-        const msg = `📖 Книга "${book.title}" будет отправлена в бота.\n\nНажмите "Открыть", чтобы получить файл.`;
+        // Открываем ссылку на файл напрямую
+        const fileUrl = book.epub_url;
+        const msg = `📖 Книга "${book.title}"\n\nСсылка для скачивания:\n${fileUrl}\n\nНажмите "Открыть", чтобы скачать.`;
         
         if (isTelegram && tg?.showPopup) {
             tg.showPopup({
@@ -329,16 +328,22 @@ window.readBook = async function(bookId) {
                 message: msg,
                 buttons: [
                     { id: "cancel", type: "cancel", text: "❌ Отмена" },
-                    { id: "open", type: "default", text: "✅ Открыть" }
+                    { id: "open", type: "default", text: "✅ Открыть ссылку" }
                 ]
             }, (buttonId) => {
                 if (buttonId === "open") {
-                    tg.openTelegramLink(botLink);
+                    if (tg.openLink) {
+                        tg.openLink(fileUrl);
+                    } else if (tg.openTelegramLink) {
+                        tg.openTelegramLink(fileUrl);
+                    } else {
+                        window.open(fileUrl, '_blank');
+                    }
                 }
             });
         } else {
-            if (confirm(msg)) {
-                window.open(botLink, '_blank');
+            if (confirm(`Скачать книгу "${book.title}"?`)) {
+                window.open(fileUrl, '_blank');
             }
         }
     } else {
