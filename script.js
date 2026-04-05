@@ -75,6 +75,7 @@ async function loadBooksFromSupabase() {
 
 async function loadEbooksFromSupabase() {
     try {
+        // Простой запрос без сложной сортировки
         const response = await fetch(`${SUPABASE_URL}/rest/v1/ebooks?select=*`, {
             headers: {
                 'apikey': SUPABASE_ANON_KEY,
@@ -83,6 +84,30 @@ async function loadEbooksFromSupabase() {
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         let data = await response.json();
+        
+        // Сортировка на стороне клиента
+        data.sort((a, b) => {
+            // Сначала по series
+            const seriesA = a.series || '';
+            const seriesB = b.series || '';
+            if (seriesA !== seriesB) {
+                return seriesA.localeCompare(seriesB);
+            }
+            // Затем по volume (число)
+            const volA = a.volume ? parseInt(a.volume, 10) : Infinity;
+            const volB = b.volume ? parseInt(b.volume, 10) : Infinity;
+            return volA - volB;
+        });
+        
+        ebooks = data;
+        renderReadBooks();
+        console.log('✅ Загружено книг для чтения:', ebooks.length);
+        return true;
+    } catch (error) {
+        console.error('❌ Ошибка загрузки книг для чтения:', error);
+        return false;
+    }
+}
         
         // Сортировка: сначала по series, затем по volume (числовое значение)
         data.sort((a, b) => {
