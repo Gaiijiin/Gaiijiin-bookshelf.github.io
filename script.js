@@ -473,6 +473,20 @@ window.deleteBook = async function(bookId) {
         }
     }
 };
+// ========== ПОДЕЛИТЬСЯ КНИГОЙ ==========
+window.shareBook = function(bookId, bookTitle) {
+    const botUsername = "bybookshelfbot";
+    const link = `https://t.me/${botUsername}?start=read_${bookId}`;
+    if (isTelegram && tg?.showPopup) {
+        tg.showPopup({
+            title: "📤 Поделиться книгой",
+            message: `Поделитесь ссылкой на книгу "${bookTitle}":\n\n${link}`,
+            buttons: [{ type: "ok" }]
+        });
+    } else {
+        prompt("Скопируйте ссылку для отправки:", link);
+    }
+};
 
 // ========== ОТЗЫВЫ ==========
 function saveReviewsLocally() {
