@@ -11,6 +11,22 @@
 </head>
 <body>
 
+<!-- Telegram WebApp инициализация -->
+<script>
+    if (window.Telegram?.WebApp) {
+        // Устанавливаем цвет хедера в цвет вашего сайта
+        window.Telegram.WebApp.setHeaderColor('#0a2f1a');
+        // Устанавливаем цвет нижней панели
+        window.Telegram.WebApp.setBottomBarColor('#0a2f1a');
+        // Растягиваем приложение на всю высоту
+        window.Telegram.WebApp.expand();
+        // Разрешаем свайпы для закрытия
+        window.Telegram.WebApp.enableVerticalSwipes();
+        // Делаем основной цвет темы
+        window.Telegram.WebApp.setBackgroundColor('#0a2f1a');
+    }
+</script>
+
 <!-- ========== КРАСИВЫЙ ЛОАДЕР ========== -->
 <style>
     .render-loading {
