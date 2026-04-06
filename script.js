@@ -229,7 +229,7 @@ function renderReadBooks() {
         return;
     }
     
-    // Группируем по сериям (если series есть, иначе каждая книга отдельно)
+    // Группировка по сериям
     const groups = {};
     filtered.forEach(book => {
         const key = book.series || book.id;
@@ -238,6 +238,7 @@ function renderReadBooks() {
                 title: book.series || book.title,
                 author: book.author,
                 description: book.description,
+                cover_url: book.cover_url,
                 books: []
             };
         }
@@ -250,18 +251,23 @@ function renderReadBooks() {
     
     container.innerHTML = Object.values(groups).map(group => {
         if (group.books.length > 1) {
-            // Серия с несколькими томами – кнопка открывает подменю
+            // Серия с несколькими томами
             const volumesHtml = group.books.map(book => `
                 <button class="volume-btn" onclick="readBook('${book.id}')">Том ${book.volume}</button>
             `).join('');
             return `
                 <div class="book-card series-card">
-                    <div class="book-title">📚 ${escapeHtml(group.title)}</div>
-                    <div class="book-author">${escapeHtml(group.author)}</div>
-                    <div class="volumes-container" style="display: none;" id="volumes-${group.title.replace(/\s/g, '')}">
-                        ${volumesHtml}
+                    <div class="book-cover">
+                        ${group.cover_url ? `<img src="${group.cover_url}" alt="Обложка" class="cover-image">` : '<div class="cover-placeholder">📚</div>'}
                     </div>
-                    <button class="contact-btn" onclick="toggleVolumes('${group.title.replace(/\s/g, '')}')">📖 Выбрать том</button>
+                    <div class="book-info">
+                        <div class="book-title">${escapeHtml(group.title)}</div>
+                        <div class="book-author">${escapeHtml(group.author)}</div>
+                        <div class="volumes-container" style="display: none;" id="volumes-${group.title.replace(/\s/g, '')}">
+                            ${volumesHtml}
+                        </div>
+                        <button class="contact-btn" onclick="toggleVolumes('${group.title.replace(/\s/g, '')}')">📖 Выбрать том</button>
+                    </div>
                 </div>
             `;
         } else {
@@ -269,10 +275,15 @@ function renderReadBooks() {
             const book = group.books[0];
             return `
                 <div class="book-card">
-                    <div class="book-title">📖 ${escapeHtml(book.title)}</div>
-                    <div class="book-author">${escapeHtml(book.author)}</div>
-                    <div class="book-description">${escapeHtml(book.description || '')}</div>
-                    <button class="contact-btn" onclick="readBook('${book.id}')">📖 Читать онлайн</button>
+                    <div class="book-cover">
+                        ${book.cover_url ? `<img src="${book.cover_url}" alt="Обложка" class="cover-image">` : '<div class="cover-placeholder">📖</div>'}
+                    </div>
+                    <div class="book-info">
+                        <div class="book-title">${escapeHtml(book.title)}</div>
+                        <div class="book-author">${escapeHtml(book.author)}</div>
+                        <div class="book-description">${escapeHtml(book.description || '')}</div>
+                        <button class="contact-btn" onclick="readBook('${book.id}')">📖 Читать онлайн</button>
+                    </div>
                 </div>
             `;
         }
