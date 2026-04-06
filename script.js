@@ -252,7 +252,6 @@ function renderReadBooks() {
     container.innerHTML = Object.values(groups).map(group => {
         if (group.books.length > 1) {
             // Серия с несколькими томами
-            const totalViews = group.books.reduce((sum, book) => sum + (book.views || 0), 0);
             const volumesHtml = group.books.map(book => `
                 <button class="volume-btn" onclick="readBook('${book.id}')">Том ${book.volume}</button>
             `).join('');
