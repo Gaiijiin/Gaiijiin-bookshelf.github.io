@@ -283,7 +283,7 @@ function renderReadBooks() {
                         <div class="book-author">${escapeHtml(book.author)}</div>
                         <div class="book-description">${escapeHtml(book.description || '')}</div>
                        <button class="contact-btn" onclick="readBook('${book.id}')">📖 Читать онлайн</button>
-<button class="share-btn" onclick="shareBook('${book.id}', '${escapeHtml(book.title)}')">🔗 Поделиться</button>
+<button class="share-btn-small" onclick="shareBook('${book.id}', '${escapeHtml(book.title)}')">🔗 Поделиться</button>
                     </div>
                 </div>
             `;
