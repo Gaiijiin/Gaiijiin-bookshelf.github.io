@@ -710,3 +710,38 @@ body {
 #read-books-list .series-card {
     background: rgba(30, 58, 50, 0.5);
 }
+.book-views {
+    font-size: 0.75rem;
+    color: #99bba8;
+    margin-bottom: 5px;
+}
+/* Планшеты (от 600px до 1024px) */
+@media (min-width: 600px) and (max-width: 1024px) {
+    #read-books-list, #buy-books-list {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+    }
+    .book-card {
+        margin-bottom: 0;
+    }
+}
+
+/* Десктопы (шире 1024px) */
+@media (min-width: 1024px) {
+    #read-books-list, #buy-books-list {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+    }
+    .book-card {
+        margin-bottom: 0;
+    }
+}
+
+/* Мобильные (до 600px) – оставляем одну колонку, как было */
+@media (max-width: 600px) {
+    #read-books-list, #buy-books-list {
+        display: block;
+    }
+}
