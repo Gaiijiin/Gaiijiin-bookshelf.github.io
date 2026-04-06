@@ -374,8 +374,7 @@ function renderReviews(bookId) {
         `;
     }).join('');
 }
-
-// ========== ФУНКЦИИ ДЛЯ КНИГ ==========
+//
 window.readBook = async function(bookId) {
     const book = ebooks.find(b => b.id == bookId);
     
@@ -389,20 +388,6 @@ window.readBook = async function(bookId) {
         return;
     }
     
-    // 
-    window.readBook = async function(bookId) {
-    const book = ebooks.find(b => b.id == bookId);
-    
-    if (!book) {
-        const msg = "❌ Книга не найдена";
-        if (isTelegram && tg?.showPopup) {
-            tg.showPopup({ title: "Ошибка", message: msg, buttons: [{ type: "ok" }] });
-        } else {
-            alert(msg);
-        }
-        return;
-    }
-        
     if (book.epub_url) {
         if (isTelegram && tg?.openLink) {
             tg.openLink(book.epub_url);
@@ -420,6 +405,9 @@ window.readBook = async function(bookId) {
         }
     }
 };
+
+
+//
 window.contactSeller = function(username, bookTitle) {
     const cleanUsername = String(username || '').replace('@', '').trim();
     
