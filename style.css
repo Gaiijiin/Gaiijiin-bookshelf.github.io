@@ -659,46 +659,8 @@ body {
         max-width: 280px;
     }
 }
-.volumes-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin: 10px 0;
-}
-.volume-btn {
-    background: rgba(30, 58, 50, 0.4);
-    border: 1px solid rgba(255, 51, 102, 0.3);
-    padding: 6px 12px;
-    border-radius: 20px;
-    color: #e6f3ef;
-    cursor: pointer;
-    font-size: 12px;
-}
-.volume-btn:hover {
-    background: #ff3366;
-    border-color: #ff3366;
-}
-.series-card {
-    background: rgba(30, 58, 50, 0.5);
-}
 
-/* Общие стили для карточек (для всех вкладок) */
-.book-card {
-    background: rgba(30, 58, 50, 0.4);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 51, 102, 0.3);
-    border-radius: 24px;
-    padding: 20px;
-    margin-bottom: 15px;
-    transition: all 0.3s ease;
-}
-.book-card:hover {
-    transform: translateY(-5px);
-    border-color: #ff3366;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-}
-
-/* Стили с обложками ТОЛЬКО для вкладки «Читать» */
+/* ========== СТИЛИ ДЛЯ ОБЛОЖЕК И ТОМОВ (ТОЛЬКО ВКЛАДКА "ЧИТАТЬ") ========== */
 #read-books-list .book-card {
     display: flex;
     gap: 15px;
@@ -726,8 +688,6 @@ body {
 #read-books-list .book-info {
     flex: 1;
 }
-
-/* Тома для серий (только во вкладке «Читать») */
 #read-books-list .volumes-container {
     display: flex;
     flex-wrap: wrap;
