@@ -340,6 +340,7 @@ function renderBuyBooks() {
                 <div>Продавец: ${escapeHtml(book.contact) || 'Не указан'}</div>
                 <button class="contact-btn" onclick="contactSeller('${sellerContact}', '${safeTitle}')">📩 Купить / Связаться</button>
                 <button class="review-btn" onclick="openReviewModal('${book.id}', '${safeTitle}')">✍️ Оставить отзыв</button>
+                <button class="share-btn" onclick="shareBook('${book.id}', '${escapeHtml(book.title)}')">🔗 Поделиться</button>
                 ${(isSeller || isAdminMode) ? `<button class="admin-delete-btn" onclick="deleteBook('${book.id}')">🗑️ Удалить товар</button>` : ''}
                 <div class="reviews-section">
                     <div class="reviews-title">📝 Отзывы (${bookReviews.length})</div>
