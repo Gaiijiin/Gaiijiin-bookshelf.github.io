@@ -282,6 +282,7 @@ function renderReadBooks() {
                         <div class="book-title">${escapeHtml(book.title)}</div>
                         <div class="book-author">${escapeHtml(book.author)}</div>
                         <div class="book-description">${escapeHtml(book.description || '')}</div>
+                        <div class="book-views">👁️ ${book.views || 0} просмотров</div>
                        <button class="contact-btn" onclick="readBook('${book.id}')">📖 Читать онлайн</button>
                     </div>
                 </div>
