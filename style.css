@@ -234,6 +234,7 @@ body {
         margin-top: 8px;
     }
 }
+
 /* ========== ПАНЕЛЬ УПРАВЛЕНИЯ ========== */
 .buy-controls {
     display: flex;
@@ -659,13 +660,42 @@ body {
         max-width: 280px;
     }
 }
-.volumes-container {
+
+/* ========== СТИЛИ ДЛЯ ОБЛОЖЕК И ТОМОВ (ТОЛЬКО ВКЛАДКА "ЧИТАТЬ") ========== */
+#read-books-list .book-card {
+    display: flex;
+    gap: 15px;
+    align-items: flex-start;
+}
+#read-books-list .book-cover {
+    flex-shrink: 0;
+    width: 80px;
+    height: 120px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+#read-books-list .cover-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+#read-books-list .cover-placeholder {
+    font-size: 40px;
+}
+#read-books-list .book-info {
+    flex: 1;
+}
+#read-books-list .volumes-container {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     margin: 10px 0;
 }
-.volume-btn {
+#read-books-list .volume-btn {
     background: rgba(30, 58, 50, 0.4);
     border: 1px solid rgba(255, 51, 102, 0.3);
     padding: 6px 12px;
@@ -674,14 +704,13 @@ body {
     cursor: pointer;
     font-size: 12px;
 }
-.volume-btn:hover {
+#read-books-list .volume-btn:hover {
     background: #ff3366;
     border-color: #ff3366;
 }
-.series-card {
+#read-books-list .series-card {
     background: rgba(30, 58, 50, 0.5);
 }
-
 
 /* Сетка для планшетов и десктопов */
 @media (min-width: 600px) and (max-width: 1024px) {
