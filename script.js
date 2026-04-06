@@ -259,6 +259,7 @@ function renderReadBooks() {
                 <div class="book-card series-card">
                     <div class="book-cover">
                         ${group.cover_url ? `<img src="${group.cover_url}" alt="Обложка" class="cover-image">` : '<div class="cover-placeholder">📚</div>'}
+                         <div class="book-views">👁️ ${book.views || 0} просмотров</div>
                     </div>
                     <div class="book-info">
                         <div class="book-title">${escapeHtml(group.title)}</div>
@@ -277,12 +278,13 @@ function renderReadBooks() {
                 <div class="book-card">
                     <div class="book-cover">
                         ${book.cover_url ? `<img src="${book.cover_url}" alt="Обложка" class="cover-image">` : '<div class="cover-placeholder">📖</div>'}
+                        <div class="book-description">${escapeHtml(book.description || '')}</div
+                        
                     </div>
                     <div class="book-info">
                         <div class="book-title">${escapeHtml(book.title)}</div>
                         <div class="book-author">${escapeHtml(book.author)}</div>
                         <div class="book-description">${escapeHtml(book.description || '')}</div>
-                        <div class="book-views">👁️ ${book.views || 0} просмотров</div>
                        <button class="contact-btn" onclick="readBook('${book.id}')">📖 Читать онлайн</button>
                     </div>
                 </div>
