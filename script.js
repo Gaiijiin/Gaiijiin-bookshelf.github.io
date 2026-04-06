@@ -260,7 +260,6 @@ function renderReadBooks() {
                 <div class="book-card series-card">
                     <div class="book-cover">
                         ${group.cover_url ? `<img src="${group.cover_url}" alt="Обложка" class="cover-image">` : '<div class="cover-placeholder">📚</div>'}
-                        <div class="book-views">👁️ ${totalViews} просмотров</div>
                     </div>
                     <div class="book-info">
                         <div class="book-title">${escapeHtml(group.title)}</div>
@@ -279,7 +278,6 @@ function renderReadBooks() {
                 <div class="book-card">
                     <div class="book-cover">
                         ${book.cover_url ? `<img src="${book.cover_url}" alt="Обложка" class="cover-image">` : '<div class="cover-placeholder">📖</div>'}
-                        <div class="book-views">👁️ ${book.views || 0} просмотров</div>
                     </div>
                     <div class="book-info">
                         <div class="book-title">${escapeHtml(book.title)}</div>
@@ -391,25 +389,20 @@ window.readBook = async function(bookId) {
         return;
     }
     
-    // Увеличиваем счётчик просмотров
-try {
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/ebooks?id=eq.${book.id}`, {
-        method: 'PATCH',
-        headers: {
-            'apikey': SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ views: (book.views || 0) + 1 })
-    });
-    if (response.ok) {
-        book.views = (book.views || 0) + 1;
-        console.log(`✅ Просмотров у "${book.title}": ${book.views}`);
-    }
-} catch (e) {
-    console.error('Не удалось обновить счётчик', e);
-}
+    // 
+    window.readBook = async function(bookId) {
+    const book = ebooks.find(b => b.id == bookId);
     
+    if (!book) {
+        const msg = "❌ Книга не найдена";
+        if (isTelegram && tg?.showPopup) {
+            tg.showPopup({ title: "Ошибка", message: msg, buttons: [{ type: "ok" }] });
+        } else {
+            alert(msg);
+        }
+        return;
+    }
+        
     if (book.epub_url) {
         if (isTelegram && tg?.openLink) {
             tg.openLink(book.epub_url);
