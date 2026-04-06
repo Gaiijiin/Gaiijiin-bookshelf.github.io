@@ -388,8 +388,24 @@ window.readBook = async function(bookId) {
         return;
     }
     
+    // Увеличиваем счётчик просмотров
+    try {
+        await fetch(`${SUPABASE_URL}/rest/v1/ebooks?id=eq.${book.id}`, {
+            method: 'PATCH',
+            headers: {
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ views: (book.views || 0) + 1 })
+        });
+        // Обновляем локальный массив
+        book.views = (book.views || 0) + 1;
+    } catch (e) {
+        console.error('Не удалось обновить счётчик', e);
+    }
+    
     if (book.epub_url) {
-        // Открываем ссылку на файл напрямую
         if (isTelegram && tg?.openLink) {
             tg.openLink(book.epub_url);
         } else if (isTelegram && tg?.openTelegramLink) {
