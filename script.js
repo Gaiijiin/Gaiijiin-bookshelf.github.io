@@ -252,6 +252,7 @@ function renderReadBooks() {
     container.innerHTML = Object.values(groups).map(group => {
         if (group.books.length > 1) {
             // Серия с несколькими томами
+            const totalViews = group.books.reduce((sum, book) => sum + (book.views || 0), 0);
             const volumesHtml = group.books.map(book => `
                 <button class="volume-btn" onclick="readBook('${book.id}')">Том ${book.volume}</button>
             `).join('');
@@ -259,7 +260,7 @@ function renderReadBooks() {
                 <div class="book-card series-card">
                     <div class="book-cover">
                         ${group.cover_url ? `<img src="${group.cover_url}" alt="Обложка" class="cover-image">` : '<div class="cover-placeholder">📚</div>'}
-                         <div class="book-views">👁️ ${book.views || 0} просмотров</div>
+                        <div class="book-views">👁️ ${totalViews} просмотров</div>
                     </div>
                     <div class="book-info">
                         <div class="book-title">${escapeHtml(group.title)}</div>
@@ -278,14 +279,13 @@ function renderReadBooks() {
                 <div class="book-card">
                     <div class="book-cover">
                         ${book.cover_url ? `<img src="${book.cover_url}" alt="Обложка" class="cover-image">` : '<div class="cover-placeholder">📖</div>'}
-                        <div class="book-description">${escapeHtml(book.description || '')}</div
-                        
+                        <div class="book-views">👁️ ${book.views || 0} просмотров</div>
                     </div>
                     <div class="book-info">
                         <div class="book-title">${escapeHtml(book.title)}</div>
                         <div class="book-author">${escapeHtml(book.author)}</div>
                         <div class="book-description">${escapeHtml(book.description || '')}</div>
-                       <button class="contact-btn" onclick="readBook('${book.id}')">📖 Читать онлайн</button>
+                        <button class="contact-btn" onclick="readBook('${book.id}')">📖 Читать онлайн</button>
                     </div>
                 </div>
             `;
