@@ -283,7 +283,6 @@ function renderReadBooks() {
                         <div class="book-author">${escapeHtml(book.author)}</div>
                         <div class="book-description">${escapeHtml(book.description || '')}</div>
                        <button class="contact-btn" onclick="readBook('${book.id}')">📖 Читать онлайн</button>
-<button class="share-btn-small" onclick="shareBook('${book.id}', '${escapeHtml(book.title)}')">🔗 Поделиться</button>
                     </div>
                 </div>
             `;
@@ -324,7 +323,6 @@ function renderBuyBooks() {
         else if (book.genre === "ранобэ") genreEmoji = "📘";
         else if (book.genre === "комиксы") genreEmoji = "🦸";
         else if (book.genre === "классика") genreEmoji = "📜";
-        else if (book.genre === "роман21") genreEmoji = "🌟";
         
         const safeTitle = escapeHtml(book.title).replace(/'/g, "\\'");
         const sellerContact = book.contact ? book.contact.replace('@', '') : '';
@@ -340,7 +338,6 @@ function renderBuyBooks() {
                 <div>Продавец: ${escapeHtml(book.contact) || 'Не указан'}</div>
                 <button class="contact-btn" onclick="contactSeller('${sellerContact}', '${safeTitle}')">📩 Купить / Связаться</button>
                 <button class="review-btn" onclick="openReviewModal('${book.id}', '${safeTitle}')">✍️ Оставить отзыв</button>
-                <button class="share-btn" onclick="shareBook('${book.id}', '${escapeHtml(book.title)}')">🔗 Поделиться</button>
                 ${(isSeller || isAdminMode) ? `<button class="admin-delete-btn" onclick="deleteBook('${book.id}')">🗑️ Удалить товар</button>` : ''}
                 <div class="reviews-section">
                     <div class="reviews-title">📝 Отзывы (${bookReviews.length})</div>
@@ -473,29 +470,6 @@ window.deleteBook = async function(bookId) {
         } else {
             alert("❌ Не удалось удалить");
         }
-    }
-};
-// ========== ПОДЕЛИТЬСЯ КНИГОЙ ==========
-window.shareBook = function(bookId, bookTitle) {
-    const botUsername = "bybookshelfbot";
-    const link = `https://t.me/${botUsername}?start=read_${bookId}`;
-    const shareText = `📖 Рекомендую книгу "${bookTitle}":\n${link}`;
-    
-    if (isTelegram && tg?.openTelegramLink) {
-        // Отправляем сообщение через Telegram (пользователь выбирает чат)
-        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(`📖 Книга "${bookTitle}"`)}`;
-        tg.openTelegramLink(shareUrl);
-    } else if (navigator.share) {
-        // Для мобильных браузеров (Web Share API)
-        navigator.share({
-            title: bookTitle,
-            text: `📖 Книга "${bookTitle}"`,
-            url: link
-        });
-    } else {
-        // Фоллбэк – копирование ссылки
-        navigator.clipboard.writeText(link);
-        alert("Ссылка скопирована в буфер обмена");
     }
 };
 
