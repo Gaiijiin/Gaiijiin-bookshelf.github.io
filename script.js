@@ -390,21 +390,23 @@ window.readBook = async function(bookId) {
     }
     
     // Увеличиваем счётчик просмотров
-    try {
-        await fetch(`${SUPABASE_URL}/rest/v1/ebooks?id=eq.${book.id}`, {
-            method: 'PATCH',
-            headers: {
-                'apikey': SUPABASE_ANON_KEY,
-                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ views: (book.views || 0) + 1 })
-        });
-        // Обновляем локальный массив
+try {
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/ebooks?id=eq.${book.id}`, {
+        method: 'PATCH',
+        headers: {
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ views: (book.views || 0) + 1 })
+    });
+    if (response.ok) {
         book.views = (book.views || 0) + 1;
-    } catch (e) {
-        console.error('Не удалось обновить счётчик', e);
+        console.log(`✅ Просмотров у "${book.title}": ${book.views}`);
     }
+} catch (e) {
+    console.error('Не удалось обновить счётчик', e);
+}
     
     if (book.epub_url) {
         if (isTelegram && tg?.openLink) {
