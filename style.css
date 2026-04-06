@@ -688,13 +688,7 @@ body {
     font-size: 40px;
     margin-top: 20px;
 }
-#read-books-list .book-views {
-    font-size: 0.65rem;
-    color: #99bba8;
-    text-align: center;
-    margin-top: 4px;
-    display: block;
-}
+
 #read-books-list .book-info {
     flex: 1;
 }
