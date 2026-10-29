@@ -34,18 +34,6 @@ function typeWriter() {
 }
 typeWriter();
 
-// ========== ЗВЁЗДЫ ==========
-for (let i = 0; i < 60; i++) {
-    const star = document.createElement('div');
-    star.classList.add('star-bg');
-    star.style.width = (Math.random() * 2.5 + 1) + 'px';
-    star.style.height = star.style.width;
-    star.style.left = Math.random() * 100 + '%';
-    star.style.top = Math.random() * 100 + '%';
-    star.style.animationDuration = (Math.random() * 4 + 2) + 's';
-    star.style.animationDelay = (Math.random() * 8) + 's';
-    document.body.appendChild(star);
-}
 
 // ========== ГЛОБАЛЬНЫЕ ДАННЫЕ ==========
 let physicalBooks = [];
